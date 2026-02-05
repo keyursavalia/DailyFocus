@@ -22,12 +22,7 @@ class TaskViewModel {
     /// Loads tasks from persistence
     func loadTasks() {
         tasks = persistenceManager.load()
-        
-        // Default task for first-time users
-        if tasks.isEmpty && shouldAddDefaultTask {
-            tasks = [FocusTask(title: "Tap to complete", isCompleted: false, priority: TaskPriority.medium, isCarriedOver: false)]
-            saveTasks()
-        }
+        // No default task - show empty state instead
     }
     
     /// Adds a new task if under the limit

@@ -7,6 +7,7 @@ class TaskListViewController: UIViewController {
     private let tableView = UITableView()
     private let headerView = TaskListHeaderView()
     private let footerView = TaskListFooterView()
+    private let emptyStateView = EmptyStateView()
     private let viewModel: TaskViewModel
     private var cancellables = Set<AnyCancellable>()
     
@@ -39,11 +40,13 @@ class TaskListViewController: UIViewController {
         view.addSubview(headerView)
         view.addSubview(footerView)
         view.addSubview(tableView)
+        view.addSubview(emptyStateView)
         
         configureHeader()
         configureFooter()
         configureTableView()
-        updateProgress()
+        configureEmptyState()
+        updateUI()
     }
     
     private func configureHeader() {
@@ -86,21 +89,45 @@ class TaskListViewController: UIViewController {
         ])
     }
     
+    private func configureEmptyState() {
+        emptyStateView.translatesAutoresizingMaskIntoConstraints = false
+        emptyStateView.onGetStartedTapped = { [weak self] in
+            self?.showAddTaskAlert()
+        }
+        
+        NSLayoutConstraint.activate([
+            emptyStateView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
+            emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: footerView.topAnchor)
+        ])
+    }
+    
     // MARK: - Bindings
     private func setupBindings() {
         viewModel.$tasks
             .receive(on: DispatchQueue.main)
             .sink { [weak self] tasks in
                 self?.tableView.reloadData()
-                self?.updateProgress()
+                self?.updateUI()
             }
             .store(in: &cancellables)
     }
     
-    private func updateProgress() {
+    private func updateUI() {
+        let isEmpty = viewModel.taskCount == 0
         let completed = viewModel.tasks.filter { $0.isCompleted }.count
         let total = viewModel.taskCount
+        
+        // Show/hide empty state
+        emptyStateView.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
+        
+        // Update progress
         headerView.updateProgress(completed: completed, total: total)
+        
+        // Update footer message
+        footerView.updateMessage(isEmpty: isEmpty)
     }
     
     // MARK: - Actions

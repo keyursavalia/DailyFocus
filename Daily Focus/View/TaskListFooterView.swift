@@ -74,5 +74,13 @@ class TaskListFooterView: UIView {
     @objc private func reflectButtonTapped() {
         onReflectButtonTapped?()
     }
+    
+    func updateMessage(isEmpty: Bool) {
+        if isEmpty {
+            messageLabel.text = "Ready to focus? Let's get started!"
+        } else {
+            messageLabel.text = "That's all for today. Stay focused."
+        }
+    }
 }
 
