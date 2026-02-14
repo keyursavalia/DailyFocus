@@ -10,6 +10,8 @@ class TaskListViewController: UIViewController {
     private let emptyStateView = EmptyStateView()
     private let viewModel: TaskViewModel
     private var cancellables = Set<AnyCancellable>()
+    private let graffitiRainView = GraffitiRainView()
+    private var hasShownGraffitiRain = false
     
     // MARK: - Initialization
     init(viewModel: TaskViewModel = TaskViewModel()) {
@@ -41,6 +43,17 @@ class TaskListViewController: UIViewController {
         view.addSubview(footerView)
         view.addSubview(tableView)
         view.addSubview(emptyStateView)
+        view.addSubview(graffitiRainView)
+        
+        graffitiRainView.translatesAutoresizingMaskIntoConstraints = false
+        graffitiRainView.isUserInteractionEnabled = false
+        NSLayoutConstraint.activate([
+            graffitiRainView.topAnchor.constraint(equalTo: view.topAnchor),
+            graffitiRainView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            graffitiRainView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            graffitiRainView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        graffitiRainView.isHidden = true
         
         configureHeader()
         configureFooter()
@@ -125,6 +138,9 @@ class TaskListViewController: UIViewController {
         // Show/hide empty state
         emptyStateView.isHidden = !isEmpty
         tableView.isHidden = isEmpty
+        headerView.updateProgress(completed: completed, total: total)
+        headerView.updateResetButtonVisibility(hasTasks: !isEmpty)
+        footerView.updateMessage(isEmpty: isEmpty)
         
         // Update progress
         headerView.updateProgress(completed: completed, total: total)
@@ -134,6 +150,14 @@ class TaskListViewController: UIViewController {
         
         // Update footer message
         footerView.updateMessage(isEmpty: isEmpty)
+        
+        // Graffiti rain when all 3 tasks completed
+        if total == 3 && completed == 3 && !hasShownGraffitiRain {
+            hasShownGraffitiRain = true
+            showGraffitiRain()
+        } else if completed < 3 {
+            hasShownGraffitiRain = false  // Reset if user uncompletes a task
+        }
     }
     
     // MARK: - Actions
@@ -223,6 +247,22 @@ class TaskListViewController: UIViewController {
         present(alert, animated: true)
     }
     
+    private func showGraffitiRain() {
+        graffitiRainView.isHidden = false
+        graffitiRainView.startRain()
+        
+        // Auto-dismiss after ~8 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+            self?.graffitiRainView.stopRain()
+            UIView.animate(withDuration: 1) {
+                self?.graffitiRainView.alpha = 0
+            } completion: { _ in
+                self?.graffitiRainView.isHidden = true
+                self?.graffitiRainView.alpha = 1
+            }
+        }
+    }
+    
     private func showResetConfirmation() {
         let alert = UIAlertController(
             title: "Reset All Tasks",
@@ -240,7 +280,9 @@ class TaskListViewController: UIViewController {
     
     private func resetAllTasks() {
         viewModel.resetAllTasks()
-        // UI will update automatically via Combine binding
+        hasShownGraffitiRain = false
+        graffitiRainView.stopRain()
+        graffitiRainView.isHidden = true
     }
 }
 
