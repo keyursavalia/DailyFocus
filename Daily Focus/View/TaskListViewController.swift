@@ -162,70 +162,27 @@ class TaskListViewController: UIViewController {
     
     // MARK: - Actions
     private func showAddTaskAlert() {
-        // Check if limit is reached before showing the alert
         guard viewModel.canAddMoreTasks else {
             showErrorAlert(error: .limitReached)
             return
         }
         
-        let alert = UIAlertController(
-            title: "New Focus",
-            message: "What is your priority?",
-            preferredStyle: .alert
-        )
-        
-        var taskTextField: UITextField?
-        alert.addTextField { textField in
-            textField.placeholder = "Enter task..."
-            taskTextField = textField
+        let addTaskSheet = AddTaskSheetView()
+        addTaskSheet.onAddTapped = { [weak self] text, priority in
+            guard let self = self else { return }
+            guard !text.isEmpty else {
+                addTaskSheet.dismiss()
+                self.showErrorAlert(error: .emptyTitle)
+                return
+            }
+            let result = self.viewModel.addTask(title: text, priority: priority)
+            addTaskSheet.dismiss()
+            self.handleAddTaskResult(result)
         }
-        
-        // Add priority selection action
-        let addAction = UIAlertAction(title: "Add", style: .default) { [weak self] _ in
-            guard let self = self,
-                  let text = taskTextField?.text, !text.isEmpty else { return }
-            
-            // Show priority selection
-            self.showPrioritySelection(for: text)
+        addTaskSheet.onCancelTapped = {
+            addTaskSheet.dismiss()
         }
-        
-        alert.addAction(addAction)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
-    
-    private func showPrioritySelection(for title: String) {
-        let alert = UIAlertController(
-            title: "Select Priority",
-            message: nil,
-            preferredStyle: .actionSheet
-        )
-        
-        alert.addAction(UIAlertAction(title: "High Priority", style: .default) { [weak self] _ in
-            let result = self?.viewModel.addTask(title: title, priority: .high)
-            self?.handleAddTaskResult(result ?? .failure(.emptyTitle))
-        })
-        
-        alert.addAction(UIAlertAction(title: "Medium Priority", style: .default) { [weak self] _ in
-            let result = self?.viewModel.addTask(title: title, priority: .medium)
-            self?.handleAddTaskResult(result ?? .failure(.emptyTitle))
-        })
-        
-        alert.addAction(UIAlertAction(title: "Low Priority", style: .default) { [weak self] _ in
-            let result = self?.viewModel.addTask(title: title, priority: .low)
-            self?.handleAddTaskResult(result ?? .failure(.emptyTitle))
-        })
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        
-        // For iPad support
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = view
-            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
-            popover.permittedArrowDirections = []
-        }
-        
-        present(alert, animated: true)
+        addTaskSheet.show(in: view)
     }
     
     private func handleAddTaskResult(_ result: Result<Void, TaskError>) {
