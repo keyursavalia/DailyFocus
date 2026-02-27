@@ -6,8 +6,8 @@ class TaskListHeaderView: UIView {
     private let todayLabel: UILabel = {
         let label = UILabel()
         label.text = "TODAY'S FOCUS"
-        label.font = .systemFont(ofSize: 12, weight: .medium)
-        label.textColor = UIColor(white: 0.6, alpha: 1.0)
+        label.font = .systemFont(ofSize: 32, weight: .bold)
+        label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -15,17 +15,9 @@ class TaskListHeaderView: UIView {
     private let blueDot: UIView = {
         let view = UIView()
         view.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
-        view.layer.cornerRadius = 4
+        view.layer.cornerRadius = 6
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
-    }()
-    
-    private let dateLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 32, weight: .bold)
-        label.textColor = .white
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
     }()
     
     private let progressView: CircularProgressView = {
@@ -53,7 +45,6 @@ class TaskListHeaderView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
-        updateDate()
     }
     
     required init?(coder: NSCoder) {
@@ -66,7 +57,6 @@ class TaskListHeaderView: UIView {
         
         addSubview(blueDot)
         addSubview(todayLabel)
-        addSubview(dateLabel)
         addSubview(progressView)
         addSubview(resetButton)
         
@@ -79,18 +69,13 @@ class TaskListHeaderView: UIView {
         NSLayoutConstraint.activate([
             // Blue Dot
             blueDot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            blueDot.topAnchor.constraint(equalTo: topAnchor, constant: 20),
-            blueDot.widthAnchor.constraint(equalToConstant: 8),
-            blueDot.heightAnchor.constraint(equalToConstant: 8),
+            blueDot.centerYAnchor.constraint(equalTo: centerYAnchor),
+            blueDot.widthAnchor.constraint(equalToConstant: 12),
+            blueDot.heightAnchor.constraint(equalToConstant: 12),
             
             // Today Label
-            todayLabel.leadingAnchor.constraint(equalTo: blueDot.trailingAnchor, constant: 8),
+            todayLabel.leadingAnchor.constraint(equalTo: blueDot.trailingAnchor, constant: 12),
             todayLabel.centerYAnchor.constraint(equalTo: blueDot.centerYAnchor),
-            
-            // Date Label
-            dateLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            dateLabel.topAnchor.constraint(equalTo: blueDot.bottomAnchor, constant: 12),
-            dateLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
             
             // Progress View (common constraints)
             progressView.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -134,12 +119,6 @@ class TaskListHeaderView: UIView {
                 self.layoutIfNeeded()
             })
         }
-    }
-    
-    private func updateDate() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        dateLabel.text = formatter.string(from: Date())
     }
     
     func updateProgress(completed: Int, total: Int) {
