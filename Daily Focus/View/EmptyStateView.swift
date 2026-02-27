@@ -88,9 +88,13 @@ class EmptyStateView: UIView {
         
         getStartedButton.addTarget(self, action: #selector(getStartedTapped), for: .touchUpInside)
         
+        let topPaddingConstraint = containerView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 80)
+        topPaddingConstraint.priority = .defaultHigh
+        
         NSLayoutConstraint.activate([
-            // Container View
-            containerView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -40),
+            // Container View - add top padding for spacing from TaskListHeaderView, center vertically
+            topPaddingConstraint,
+            containerView.centerYAnchor.constraint(equalTo: centerYAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 40),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
             
