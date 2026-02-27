@@ -196,7 +196,7 @@ class TaskListViewController: UIViewController {
     
     private func showErrorAlert(error: TaskError) {
         let alert = UIAlertController(
-            title: "Limit Reached",
+            title: error.alertTitle,
             message: error.localizedDescription,
             preferredStyle: .alert
         )
