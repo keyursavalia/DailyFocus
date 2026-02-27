@@ -147,7 +147,14 @@ class AddTaskSheetView: UIView {
         button.setTitle(title, for: .normal)
         button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        button.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
+        switch priority {
+        case .high:
+            button.backgroundColor = UIColor(red: 0.75, green: 0.35, blue: 0.35, alpha: 1.0)
+        case .medium:
+            button.backgroundColor = UIColor(red: 0.75, green: 0.65, blue: 0.25, alpha: 1.0)
+        case .low:
+            button.backgroundColor = UIColor(red: 0.35, green: 0.6, blue: 0.4, alpha: 1.0)
+        }
         button.layer.cornerRadius = 10
         button.tag = priority == .high ? 0 : (priority == .medium ? 1 : 2)
         button.addTarget(self, action: #selector(priorityButtonTapped(_:)), for: .touchUpInside)
