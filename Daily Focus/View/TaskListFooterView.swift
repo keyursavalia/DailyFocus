@@ -7,7 +7,7 @@ class TaskListFooterView: UIView {
         let label = UILabel()
         label.text = "That's all for today. Stay focused."
         label.font = .italicSystemFont(ofSize: 15)
-        label.textColor = UIColor(white: 0.6, alpha: 1.0)
+        label.textColor = AppTheme.secondaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -16,20 +16,14 @@ class TaskListFooterView: UIView {
     private let reflectButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Add", for: .normal)
-        button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        button.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.18, alpha: 1.0)
+        button.backgroundColor = AppTheme.elevatedBackground
         button.layer.borderWidth = 1
-        button.layer.borderColor = UIColor(white: 0.3, alpha: 1.0).cgColor
         button.layer.cornerRadius = 12
         
-        // Add calendar icon
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        let calendarImage = UIImage(systemName: "pencil", withConfiguration: config)
-        
-        if let calendarImage = calendarImage {
-            let combinedImage = calendarImage.withTintColor(.white, renderingMode: .alwaysOriginal)
-            button.setImage(combinedImage, for: .normal)
+        if let img = UIImage(systemName: "pencil", withConfiguration: config)?.withRenderingMode(.alwaysTemplate) {
+            button.setImage(img, for: .normal)
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
             button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
         }
@@ -57,6 +51,7 @@ class TaskListFooterView: UIView {
         addSubview(reflectButton)
         
         reflectButton.addTarget(self, action: #selector(reflectButtonTapped), for: .touchUpInside)
+        applyChrome()
         
         NSLayoutConstraint.activate([
             messageLabel.topAnchor.constraint(equalTo: topAnchor, constant: 20),
@@ -81,6 +76,19 @@ class TaskListFooterView: UIView {
         } else {
             messageLabel.text = "That's all for today. Stay focused."
         }
+    }
+    
+    private func applyChrome() {
+        messageLabel.textColor = AppTheme.secondaryText
+        reflectButton.setTitleColor(AppTheme.primaryText, for: .normal)
+        reflectButton.tintColor = AppTheme.primaryText
+        reflectButton.backgroundColor = AppTheme.elevatedBackground
+        reflectButton.layer.borderColor = AppTheme.border.resolvedColor(with: traitCollection).cgColor
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        applyChrome()
     }
 }
 
