@@ -6,7 +6,7 @@ class TaskCardCell: UITableViewCell {
     // MARK: - UI Components
     private let cardView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.18, alpha: 1.0)
+        view.backgroundColor = AppTheme.cardBackground
         view.layer.cornerRadius = 16
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -15,7 +15,7 @@ class TaskCardCell: UITableViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 17, weight: .semibold)
-        label.textColor = .white
+        label.textColor = AppTheme.primaryText
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -24,7 +24,7 @@ class TaskCardCell: UITableViewCell {
     private let priorityLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 13, weight: .regular)
-        label.textColor = UIColor(white: 0.7, alpha: 1.0)
+        label.textColor = AppTheme.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -59,7 +59,6 @@ class TaskCardCell: UITableViewCell {
     private let checkmarkButton: UIButton = {
         let button = UIButton(type: .custom)
         button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor.white.cgColor
         button.layer.cornerRadius = 12
         button.backgroundColor = .clear
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -68,6 +67,7 @@ class TaskCardCell: UITableViewCell {
     
     // MARK: - Properties
     var onCheckmarkTapped: (() -> Void)?
+    private var currentTask: FocusTask?
     
     // MARK: - Initialization
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -94,6 +94,7 @@ class TaskCardCell: UITableViewCell {
         carriedOverTag.addSubview(carriedOverLabel)
         
         checkmarkButton.addTarget(self, action: #selector(checkmarkTapped), for: .touchUpInside)
+        applyCheckmarkBorderColor()
         
         NSLayoutConstraint.activate([
             // Card View
@@ -138,6 +139,11 @@ class TaskCardCell: UITableViewCell {
     
     // MARK: - Configuration
     func configure(with task: FocusTask) {
+        currentTask = task
+        let primary = AppTheme.primaryText
+        let muted = AppTheme.tertiaryText
+        let accent = AppTheme.accent
+        
         // Configure title with strikethrough if completed
         let attributedTitle = NSMutableAttributedString(string: task.title)
         if task.isCompleted {
@@ -146,9 +152,9 @@ class TaskCardCell: UITableViewCell {
                 value: NSUnderlineStyle.single.rawValue,
                 range: NSRange(location: 0, length: task.title.count)
             )
-            titleLabel.textColor = UIColor(white: 0.5, alpha: 1.0)
+            titleLabel.textColor = muted
         } else {
-            titleLabel.textColor = .white
+            titleLabel.textColor = primary
         }
         titleLabel.attributedText = attributedTitle
         
@@ -161,15 +167,31 @@ class TaskCardCell: UITableViewCell {
         
         // Configure checkmark
         if task.isCompleted {
-            checkmarkButton.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
-            checkmarkButton.layer.borderColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0).cgColor
+            checkmarkButton.backgroundColor = accent
+            checkmarkButton.layer.borderColor = accent.resolvedColor(with: traitCollection).cgColor
             checkmarkButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
             checkmarkButton.tintColor = .white
         } else {
             checkmarkButton.backgroundColor = .clear
-            checkmarkButton.layer.borderColor = UIColor.white.cgColor
+            applyCheckmarkBorderColor()
             checkmarkButton.setImage(nil, for: .normal)
         }
+    }
+    
+    private func applyCheckmarkBorderColor() {
+        checkmarkButton.layer.borderColor = AppTheme.primaryText.resolvedColor(with: traitCollection).cgColor
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if let task = currentTask {
+            configure(with: task)
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        currentTask = nil
     }
     
     // MARK: - Actions
