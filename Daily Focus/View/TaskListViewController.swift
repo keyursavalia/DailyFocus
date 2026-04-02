@@ -32,8 +32,7 @@ class TaskListViewController: UIViewController {
     
     // MARK: - Setup Methods
     private func setupUI() {
-        // Dark theme background
-        view.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.12, alpha: 1.0)
+        view.backgroundColor = AppTheme.background
         
         // Hide navigation bar for cleaner look
         navigationController?.setNavigationBarHidden(true, animated: false)
@@ -67,6 +66,11 @@ class TaskListViewController: UIViewController {
         headerView.onResetTapped = { [weak self] in
             self?.showResetConfirmation()
         }
+        headerView.onAppearanceTapped = { [weak self] in
+            AppearanceManager.shared.cyclePreference()
+            self?.headerView.updateAppearanceButtonIcon()
+        }
+        headerView.updateAppearanceButtonIcon()
         
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -140,15 +144,6 @@ class TaskListViewController: UIViewController {
         tableView.isHidden = isEmpty
         headerView.updateProgress(completed: completed, total: total)
         headerView.updateResetButtonVisibility(hasTasks: !isEmpty)
-        footerView.updateMessage(isEmpty: isEmpty)
-        
-        // Update progress
-        headerView.updateProgress(completed: completed, total: total)
-        
-        // Update reset button visibility
-        headerView.updateResetButtonVisibility(hasTasks: !isEmpty)
-        
-        // Update footer message
         footerView.updateMessage(isEmpty: isEmpty)
         
         // Graffiti rain when all tasks for the day are completed (1, 2, or 3)
