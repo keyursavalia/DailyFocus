@@ -5,14 +5,14 @@ class AddTaskSheetView: UIView {
     // MARK: - UI Components
     private let dimmedBackground: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        view.backgroundColor = AppTheme.dimmedOverlay
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
     private let cardView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.18, alpha: 1.0)
+        view.backgroundColor = AppTheme.elevatedBackground
         view.layer.cornerRadius = 20
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -22,7 +22,7 @@ class AddTaskSheetView: UIView {
         let label = UILabel()
         label.text = "New Focus"
         label.font = .systemFont(ofSize: 20, weight: .bold)
-        label.textColor = .white
+        label.textColor = AppTheme.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -31,17 +31,16 @@ class AddTaskSheetView: UIView {
         let label = UILabel()
         label.text = "Enter your task and choose a priority."
         label.font = .systemFont(ofSize: 15, weight: .regular)
-        label.textColor = UIColor(white: 0.7, alpha: 1.0)
+        label.textColor = AppTheme.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
     private let taskTextField: UITextField = {
         let field = UITextField()
-        field.placeholder = "Enter task..."
         field.font = .systemFont(ofSize: 17, weight: .regular)
-        field.textColor = .white
-        field.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        field.textColor = AppTheme.primaryText
+        field.backgroundColor = AppTheme.fieldBackground
         field.layer.cornerRadius = 12
         field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
         field.leftViewMode = .always
@@ -63,7 +62,6 @@ class AddTaskSheetView: UIView {
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Cancel", for: .normal)
-        button.setTitleColor(UIColor(white: 0.7, alpha: 1.0), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .medium)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -85,6 +83,8 @@ class AddTaskSheetView: UIView {
     
     // MARK: - Setup
     private func setupUI() {
+        applyTheme()
+        
         addSubview(dimmedBackground)
         addSubview(cardView)
         
@@ -142,6 +142,20 @@ class AddTaskSheetView: UIView {
         ])
     }
     
+    private func applyTheme() {
+        dimmedBackground.backgroundColor = AppTheme.dimmedOverlay
+        cardView.backgroundColor = AppTheme.elevatedBackground
+        titleLabel.textColor = AppTheme.primaryText
+        messageLabel.textColor = AppTheme.secondaryText
+        taskTextField.textColor = AppTheme.primaryText
+        taskTextField.backgroundColor = AppTheme.fieldBackground
+        taskTextField.attributedPlaceholder = NSAttributedString(
+            string: "Enter task...",
+            attributes: [.foregroundColor: AppTheme.secondaryText]
+        )
+        cancelButton.setTitleColor(AppTheme.secondaryText, for: .normal)
+    }
+    
     private func createPriorityButton(title: String, priority: TaskPriority) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
@@ -149,16 +163,21 @@ class AddTaskSheetView: UIView {
         button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         switch priority {
         case .high:
-            button.backgroundColor = UIColor(red: 0.75, green: 0.35, blue: 0.35, alpha: 1.0)
+            button.backgroundColor = AppTheme.priorityHigh
         case .medium:
-            button.backgroundColor = UIColor(red: 0.75, green: 0.65, blue: 0.25, alpha: 1.0)
+            button.backgroundColor = AppTheme.priorityMedium
         case .low:
-            button.backgroundColor = UIColor(red: 0.35, green: 0.6, blue: 0.4, alpha: 1.0)
+            button.backgroundColor = AppTheme.priorityLow
         }
         button.layer.cornerRadius = 10
         button.tag = priority == .high ? 0 : (priority == .medium ? 1 : 2)
         button.addTarget(self, action: #selector(priorityButtonTapped(_:)), for: .touchUpInside)
         return button
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        applyTheme()
     }
     
     // MARK: - Actions
