@@ -13,7 +13,7 @@ class EmptyStateView: UIView {
         let imageView = UIImageView()
         let config = UIImage.SymbolConfiguration(pointSize: 64, weight: .light)
         imageView.image = UIImage(systemName: "checkmark.circle", withConfiguration: config)
-        imageView.tintColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
+        imageView.tintColor = AppTheme.accent
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -23,7 +23,7 @@ class EmptyStateView: UIView {
         let label = UILabel()
         label.text = "Welcome to Daily Focus"
         label.font = .systemFont(ofSize: 24, weight: .bold)
-        label.textColor = .white
+        label.textColor = AppTheme.primaryText
         label.textAlignment = .center
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -34,7 +34,7 @@ class EmptyStateView: UIView {
         let label = UILabel()
         label.text = "Focus on what matters most. Add up to 3 tasks for today and stay on track."
         label.font = .systemFont(ofSize: 16, weight: .regular)
-        label.textColor = UIColor(white: 0.7, alpha: 1.0)
+        label.textColor = AppTheme.secondaryText
         label.textAlignment = .center
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -55,7 +55,7 @@ class EmptyStateView: UIView {
         button.setTitle("Get Started", for: .normal)
         button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        button.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
+        button.backgroundColor = AppTheme.accent
         button.layer.cornerRadius = 12
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -149,13 +149,13 @@ class EmptyStateView: UIView {
         let numberLabel = UILabel()
         numberLabel.text = number
         numberLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        numberLabel.textColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
+        numberLabel.textColor = AppTheme.accent
         numberLabel.translatesAutoresizingMaskIntoConstraints = false
         
         let textLabel = UILabel()
         textLabel.text = text
         textLabel.font = .systemFont(ofSize: 15, weight: .regular)
-        textLabel.textColor = UIColor(white: 0.7, alpha: 1.0)
+        textLabel.textColor = AppTheme.secondaryText
         textLabel.numberOfLines = 0
         textLabel.translatesAutoresizingMaskIntoConstraints = false
         
@@ -178,6 +178,14 @@ class EmptyStateView: UIView {
     
     @objc private func getStartedTapped() {
         onGetStartedTapped?()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        titleLabel.textColor = AppTheme.primaryText
+        descriptionLabel.textColor = AppTheme.secondaryText
+        getStartedButton.backgroundColor = AppTheme.accent
+        iconImageView.tintColor = AppTheme.accent
     }
 }
 
