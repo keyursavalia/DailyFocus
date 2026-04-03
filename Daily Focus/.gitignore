@@ -7,3 +7,7 @@ DerivedData/
 # Specific xcworkspace user data
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/SwiftPM/
+
+# Ignore shared workspace data and user-specific project settings
+*.xcodeproj/project.xcworkspace/xcshareddata/
+*.xcodeproj/xcuserdata/
