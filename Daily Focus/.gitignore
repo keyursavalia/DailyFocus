@@ -1,0 +1,9 @@
+# Xcode user settings (Window positions, open files)
+xcuserdata/
+
+# Derived Data (Build artifacts)
+DerivedData/
+
+# Specific xcworkspace user data
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/SwiftPM/
