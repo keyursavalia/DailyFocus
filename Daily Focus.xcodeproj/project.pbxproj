@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3C6F7C1E2F7F78E40065C479 /* DotLottie in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6F7C1D2F7F78E40065C479 /* DotLottie */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3C942C692F329B0500952AC8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C6F7C1E2F7F78E40065C479 /* DotLottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +108,7 @@
 			);
 			name = "Daily Focus";
 			packageProductDependencies = (
+				3C6F7C1D2F7F78E40065C479 /* DotLottie */,
 			);
 			productName = "Daily Focus";
 			productReference = 3C942C3B2F31569C00952AC8 /* Daily Focus.app */;
@@ -159,6 +165,9 @@
 			);
 			mainGroup = 3C942C322F31569C00952AC8;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3C6F7C1C2F7F78E40065C479 /* XCRemoteSwiftPackageReference "dotlottie-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3C942C3C2F31569C00952AC8 /* Products */;
 			projectDirPath = "";
@@ -469,6 +478,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3C6F7C1C2F7F78E40065C479 /* XCRemoteSwiftPackageReference "dotlottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/LottieFiles/dotlottie-ios.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3C6F7C1D2F7F78E40065C479 /* DotLottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3C6F7C1C2F7F78E40065C479 /* XCRemoteSwiftPackageReference "dotlottie-ios" */;
+			productName = DotLottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3C942C332F31569C00952AC8 /* Project object */;
 }
