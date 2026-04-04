@@ -1,6 +1,6 @@
 import Foundation
 
 protocol PersistenceManagerProtocol {
-    func save(tasks: [FocusTask])
-    func load() -> [FocusTask]
+    func saveTasksByDay(_ tasksByDay: [String: [FocusTask]])
+    func loadTasksByDay() -> [String: [FocusTask]]
 }
