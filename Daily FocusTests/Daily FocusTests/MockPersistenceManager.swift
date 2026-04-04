@@ -2,15 +2,15 @@ import Foundation
 @testable import Daily_Focus
 
 class MockPersistenceManager: PersistenceManagerProtocol {
-    var savedTasks: [FocusTask] = []
+    var tasksByDay: [String: [FocusTask]] = [:]
     var loadCalled = false
-    
-    func save(tasks: [FocusTask]) {
-        savedTasks = tasks
+
+    func saveTasksByDay(_ tasksByDay: [String: [FocusTask]]) {
+        self.tasksByDay = tasksByDay
     }
-    
-    func load() -> [FocusTask] {
+
+    func loadTasksByDay() -> [String: [FocusTask]] {
         loadCalled = true
-        return savedTasks
+        return tasksByDay
     }
 }
