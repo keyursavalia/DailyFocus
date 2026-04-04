@@ -12,6 +12,7 @@ class TaskListViewController: UIViewController {
     private let viewModel: TaskViewModel
     private var cancellables = Set<AnyCancellable>()
     private var hasShownCompletionCelebration = false
+    private var lastKnownCalendarDayKey: String?
 
     init(viewModel: TaskViewModel = TaskViewModel()) {
         self.viewModel = viewModel
@@ -26,6 +27,45 @@ class TaskListViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupBindings()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSceneDidBecomeActive),
+            name: .dailyFocusSceneDidBecomeActive,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSignificantTimeChange),
+            name: UIApplication.significantTimeChangeNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        refreshDayState()
+    }
+
+    private func refreshDayState() {
+        let nowKey = DayKey.string(for: Date())
+        viewModel.refreshForCurrentCalendarDayIfNeeded()
+        if let prev = lastKnownCalendarDayKey, prev != nowKey {
+            hasShownCompletionCelebration = false
+        }
+        lastKnownCalendarDayKey = nowKey
+        updateUI()
+    }
+
+    @objc private func onSceneDidBecomeActive() {
+        refreshDayState()
+    }
+
+    @objc private func onSignificantTimeChange() {
+        refreshDayState()
     }
 
     private func setupUI() {
