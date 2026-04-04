@@ -2,69 +2,87 @@ import Foundation
 
 class PersistenceManager: PersistenceManagerProtocol {
     static let shared = PersistenceManager()
-    private let tasksKey = "userTasks"
-    
-    private init() {} // Singleton
-    
-    func save(tasks: [FocusTask]) {
+
+    private let tasksByDayKey = "userTasksByDay"
+    private let legacyTasksKey = "userTasks"
+
+    private init() {}
+
+    func saveTasksByDay(_ tasksByDay: [String: [FocusTask]]) {
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(tasks)
-            UserDefaults.standard.set(data, forKey: tasksKey)
+            let data = try encoder.encode(tasksByDay)
+            UserDefaults.standard.set(data, forKey: tasksByDayKey)
         } catch {
-            print("Unable to encode tasks: \(error)")
+            print("Unable to encode tasks by day: \(error)")
         }
     }
-    
-    func load() -> [FocusTask] {
-        guard let data = UserDefaults.standard.data(forKey: tasksKey) else { return [] }
-        
-        // First, try to decode as new format
-        do {
-            let decoder = JSONDecoder()
-            return try decoder.decode([FocusTask].self, from: data)
-        } catch let newFormatError {
-            // If that fails, try to migrate from old format
-            print("Unable to decode tasks in new format, attempting migration: \(newFormatError)")
-            return migrateOldFormat(data: data)
+
+    func loadTasksByDay() -> [String: [FocusTask]] {
+        if let data = UserDefaults.standard.data(forKey: tasksByDayKey) {
+            do {
+                return try JSONDecoder().decode([String: [FocusTask]].self, from: data)
+            } catch {
+                print("Unable to decode tasks by day: \(error)")
+            }
         }
+
+        if let legacy = loadLegacyFlatTasks() {
+            let today = DayKey.string(for: Date())
+            let migrated = legacy.map { task in
+                var t = task
+                if t.dayKey.isEmpty { t.dayKey = today }
+                return t
+            }
+            let grouped = Dictionary(grouping: migrated, by: \.dayKey)
+                .mapValues { $0 }
+            saveTasksByDay(grouped)
+            UserDefaults.standard.removeObject(forKey: legacyTasksKey)
+            return grouped
+        }
+
+        return [:]
     }
-    
-    private func migrateOldFormat(data: Data) -> [FocusTask] {
-        // Try to decode as old format (without priority, isCarriedOver, createdAt)
+
+    private func loadLegacyFlatTasks() -> [FocusTask]? {
+        guard let data = UserDefaults.standard.data(forKey: legacyTasksKey) else { return nil }
+
+        if let tasks = try? JSONDecoder().decode([FocusTask].self, from: data) {
+            return tasks
+        }
+
+        return migrateOldFormat(data: data)
+    }
+
+    private func migrateOldFormat(data: Data) -> [FocusTask]? {
         struct OldFocusTask: Codable {
             var title: String
             var isCompleted: Bool
         }
-        
+
         do {
-            let decoder = JSONDecoder()
-            let oldTasks = try decoder.decode([OldFocusTask].self, from: data)
-            print("Successfully migrated \(oldTasks.count) tasks from old format")
-            
-            // Migrate to new format
-            let migratedTasks = oldTasks.map { oldTask in
+            let oldTasks = try JSONDecoder().decode([OldFocusTask].self, from: data)
+            let today = DayKey.string(for: Date())
+            let migrated = oldTasks.map { old in
                 FocusTask(
-                    title: oldTask.title,
-                    isCompleted: oldTask.isCompleted,
-                    priority: TaskPriority.medium,
-                    isCarriedOver: false
+                    title: old.title,
+                    isCompleted: old.isCompleted,
+                    priority: .medium,
+                    isCarriedOver: false,
+                    createdAt: Date(),
+                    dayKey: today
                 )
             }
-            // Save migrated tasks
-            save(tasks: migratedTasks)
-            return migratedTasks
-        } catch let migrationError {
-            print("Migration failed: \(migrationError)")
-            // If migration fails, return empty array to prevent crash
-            // User can start fresh
-            UserDefaults.standard.removeObject(forKey: tasksKey)
-            return []
+            return migrated
+        } catch {
+            print("Legacy migration failed: \(error)")
+            UserDefaults.standard.removeObject(forKey: legacyTasksKey)
+            return nil
         }
     }
-    
-    /// Clears all tasks from persistence
+
     func clearAllTasks() {
-        UserDefaults.standard.removeObject(forKey: tasksKey)
+        UserDefaults.standard.removeObject(forKey: tasksByDayKey)
+        UserDefaults.standard.removeObject(forKey: legacyTasksKey)
     }
 }
