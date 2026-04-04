@@ -3,44 +3,40 @@ import XCTest
 
 class PersistenceManagerTests: XCTestCase {
     var persistenceManager: PersistenceManager!
-    let testKey = "testTasks"
-    
+
     override func setUp() {
         super.setUp()
         persistenceManager = PersistenceManager.shared
-        // Clear any existing data
+        UserDefaults.standard.removeObject(forKey: "userTasksByDay")
         UserDefaults.standard.removeObject(forKey: "userTasks")
     }
-    
+
     override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: "userTasksByDay")
         UserDefaults.standard.removeObject(forKey: "userTasks")
         super.tearDown()
     }
-    
-    func testSaveAndLoad() {
-        // Given
+
+    func testSaveAndLoadByDay() {
+        let day = DayKey.string(for: Date())
         let tasks = [
-            FocusTask(title: "Task 1", isCompleted: false),
-            FocusTask(title: "Task 2", isCompleted: true)
+            FocusTask(title: "Task 1", isCompleted: false, dayKey: day),
+            FocusTask(title: "Task 2", isCompleted: true, dayKey: day)
         ]
-        
-        // When
-        persistenceManager.save(tasks: tasks)
-        let loadedTasks = persistenceManager.load()
-        
-        // Then
-        XCTAssertEqual(loadedTasks.count, 2)
-        XCTAssertEqual(loadedTasks[0].title, "Task 1")
-        XCTAssertEqual(loadedTasks[1].title, "Task 2")
-        XCTAssertFalse(loadedTasks[0].isCompleted)
-        XCTAssertTrue(loadedTasks[1].isCompleted)
+        let payload = [day: tasks]
+
+        persistenceManager.saveTasksByDay(payload)
+        let loaded = persistenceManager.loadTasksByDay()
+
+        XCTAssertEqual(loaded[day]?.count, 2)
+        XCTAssertEqual(loaded[day]?[0].title, "Task 1")
+        XCTAssertEqual(loaded[day]?[1].title, "Task 2")
+        XCTAssertFalse(loaded[day]?[0].isCompleted ?? true)
+        XCTAssertTrue(loaded[day]?[1].isCompleted ?? false)
     }
-    
+
     func testLoadEmpty() {
-        // When
-        let tasks = persistenceManager.load()
-        
-        // Then
+        let tasks = persistenceManager.loadTasksByDay()
         XCTAssertTrue(tasks.isEmpty)
     }
 }
