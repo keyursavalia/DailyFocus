@@ -31,7 +31,15 @@ class TaskViewModel {
     }
 
     func addTask(title: String, priority: TaskPriority = .medium) -> Result<Void, TaskError> {
-        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let now = Date()
+        let end = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now
+        return addTask(
+            TaskFormPayload(title: title, priority: priority, isAllDay: false, startDate: now, endDate: end)
+        )
+    }
+
+    func addTask(_ payload: TaskFormPayload) -> Result<Void, TaskError> {
+        guard !payload.title.trimmingCharacters(in: .whitespaces).isEmpty else {
             return .failure(.emptyTitle)
         }
 
@@ -43,12 +51,15 @@ class TaskViewModel {
         displayedDayKey = todayKey
 
         let newTask = FocusTask(
-            title: title,
+            title: payload.title.trimmingCharacters(in: .whitespaces),
             isCompleted: false,
-            priority: priority,
+            priority: payload.priority,
             isCarriedOver: false,
             createdAt: Date(),
-            dayKey: todayKey
+            dayKey: todayKey,
+            isAllDay: payload.isAllDay,
+            startDate: payload.startDate,
+            endDate: payload.endDate
         )
         tasks.append(newTask)
         saveTasks()
