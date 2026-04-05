@@ -5,9 +5,7 @@ final class CalendarViewController: UIViewController {
 
     private let monthCalendarView = MonthCalendarView()
     private let dayPanel = UIView()
-    private let dayTitleRow = UIStackView()
     private let dayTitleLabel = UILabel()
-    private let moodButton = UIButton(type: .system)
     private let tableView = UITableView(frame: .zero, style: .plain)
 
     private let bottomBar = UIStackView()
@@ -78,37 +76,15 @@ final class CalendarViewController: UIViewController {
         monthCalendarView.onNextMonth = { [weak self] in
             self?.shiftMonth(1)
         }
-        monthCalendarView.onSearchTapped = { [weak self] in
-            self?.presentSearchFilter()
-        }
-        monthCalendarView.setMenuAction(UIAction { [weak self] _ in
-            self?.sideToolsDrawer.setOpen(true, animated: true)
-        })
     }
 
     private func configureDayPanel() {
         dayPanel.backgroundColor = AppTheme.calendarPanelBackground
         dayPanel.translatesAutoresizingMaskIntoConstraints = false
 
-        dayTitleRow.axis = .horizontal
-        dayTitleRow.alignment = .center
-        dayTitleRow.distribution = .equalSpacing
-        dayTitleRow.translatesAutoresizingMaskIntoConstraints = false
-
         dayTitleLabel.font = .systemFont(ofSize: 28, weight: .bold)
         dayTitleLabel.textColor = AppTheme.primaryText
-
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-        moodButton.setImage(UIImage(systemName: "face.smiling", withConfiguration: config), for: .normal)
-        moodButton.tintColor = AppTheme.secondaryText
-        moodButton.addAction(UIAction { [weak self] _ in
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            self?.moodButton.alpha = 0.5
-            UIView.animate(withDuration: 0.2) { self?.moodButton.alpha = 1 }
-        }, for: .touchUpInside)
-
-        dayTitleRow.addArrangedSubview(dayTitleLabel)
-        dayTitleRow.addArrangedSubview(moodButton)
+        dayTitleLabel.translatesAutoresizingMaskIntoConstraints = false
 
         updateDayTitle()
     }
@@ -138,15 +114,17 @@ final class CalendarViewController: UIViewController {
         quickAddButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
         quickAddButton.addAction(UIAction { [weak self] _ in self?.presentAddTask() }, for: .touchUpInside)
 
-        addFAB.setImage(UIImage(systemName: "plus", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)), for: .normal)
+        let addIcon = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        addFAB.setImage(UIImage(systemName: "plus", withConfiguration: addIcon), for: .normal)
         addFAB.tintColor = AppTheme.primaryText
-        addFAB.backgroundColor = AppTheme.calendarFABBackground
-        addFAB.layer.cornerRadius = 28
+        addFAB.backgroundColor = AppTheme.cardBackground
+        addFAB.layer.cornerRadius = 22
+        addFAB.layer.cornerCurve = .continuous
         addFAB.addAction(UIAction { [weak self] _ in self?.presentAddTask() }, for: .touchUpInside)
         addFAB.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            addFAB.widthAnchor.constraint(equalToConstant: 56),
-            addFAB.heightAnchor.constraint(equalToConstant: 56)
+            addFAB.widthAnchor.constraint(equalToConstant: 44),
+            addFAB.heightAnchor.constraint(equalToConstant: 44)
         ])
 
         bottomBar.addArrangedSubview(quickAddButton)
@@ -181,7 +159,7 @@ final class CalendarViewController: UIViewController {
     private func layoutViews() {
         view.addSubview(monthCalendarView)
         view.addSubview(dayPanel)
-        dayPanel.addSubview(dayTitleRow)
+        dayPanel.addSubview(dayTitleLabel)
         dayPanel.addSubview(tableView)
         view.addSubview(bottomBar)
 
@@ -197,11 +175,11 @@ final class CalendarViewController: UIViewController {
             dayPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayPanel.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -8),
 
-            dayTitleRow.topAnchor.constraint(equalTo: dayPanel.safeAreaLayoutGuide.topAnchor, constant: 12),
-            dayTitleRow.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor, constant: 20),
-            dayTitleRow.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor, constant: -20),
+            dayTitleLabel.topAnchor.constraint(equalTo: dayPanel.safeAreaLayoutGuide.topAnchor, constant: 12),
+            dayTitleLabel.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor, constant: 20),
+            dayTitleLabel.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor, constant: -20),
 
-            tableView.topAnchor.constraint(equalTo: dayTitleRow.bottomAnchor, constant: 8),
+            tableView.topAnchor.constraint(equalTo: dayTitleLabel.bottomAnchor, constant: 8),
             tableView.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: dayPanel.bottomAnchor),
@@ -216,7 +194,6 @@ final class CalendarViewController: UIViewController {
     }
 
     private func applySelectedDayKey(_ key: String) {
-        taskFilter = ""
         selectedDayKey = key
         if let d = DayKey.date(from: key) {
             let m = cal.component(.month, from: d)
@@ -238,7 +215,6 @@ final class CalendarViewController: UIViewController {
     }
 
     private func shiftMonth(_ delta: Int) {
-        taskFilter = ""
         guard
             let nextMonth = cal.date(byAdding: .month, value: delta, to: firstOfMonth(displayedMonth)),
             let first = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth))
@@ -360,52 +336,21 @@ final class CalendarViewController: UIViewController {
         })
         present(alert, animated: true)
     }
-
-    private var taskFilter: String = ""
-
-    private func presentSearchFilter() {
-        let alert = UIAlertController(title: "Filter tasks", message: "Search titles for the selected day.", preferredStyle: .alert)
-        alert.addTextField { [weak self] field in
-            field.placeholder = "Search"
-            field.text = self?.taskFilter
-        }
-        alert.addAction(UIAlertAction(title: "Clear", style: .destructive) { [weak self] _ in
-            self?.taskFilter = ""
-            self?.tableView.reloadData()
-        })
-        alert.addAction(UIAlertAction(title: "Apply", style: .default) { [weak self] _ in
-            self?.taskFilter = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespaces) ?? ""
-            self?.tableView.reloadData()
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
-
-    private func filteredTasks() -> [FocusTask] {
-        let base = displayedTasks
-        let q = taskFilter.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return base }
-        return base.filter { $0.title.localizedCaseInsensitiveContains(q) }
-    }
 }
 
 extension CalendarViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let n = filteredTasks().count
-        return max(n, 1)
+        max(displayedTasks.count, 1)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let tasks = filteredTasks()
-        if tasks.isEmpty {
+        if displayedTasks.isEmpty {
             let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
             cell.backgroundColor = .clear
-            cell.textLabel?.text = taskFilter.isEmpty ? "No tasks" : "No matches"
+            cell.textLabel?.text = "No tasks"
             cell.textLabel?.textColor = AppTheme.secondaryText
             cell.textLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-            cell.detailTextLabel?.text = taskFilter.isEmpty
-                ? "Add a focus task for this day using the bar below."
-                : "Try a different search."
+            cell.detailTextLabel?.text = "Add a focus task for this day using the bar below."
             cell.detailTextLabel?.textColor = AppTheme.tertiaryText
             cell.detailTextLabel?.numberOfLines = 0
             cell.selectionStyle = .none
@@ -413,14 +358,13 @@ extension CalendarViewController: UITableViewDataSource, UITableViewDelegate {
         }
 
         let cell = tableView.dequeueReusableCell(withIdentifier: CalendarEventCell.identifier, for: indexPath) as! CalendarEventCell
-        cell.configure(with: tasks[indexPath.row])
+        cell.configure(with: displayedTasks[indexPath.row])
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let tasks = filteredTasks()
-        guard !tasks.isEmpty else { return }
-        presentDetail(for: tasks[indexPath.row])
+        guard !displayedTasks.isEmpty else { return }
+        presentDetail(for: displayedTasks[indexPath.row])
     }
 }
