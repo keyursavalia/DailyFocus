@@ -38,19 +38,22 @@ final class TaskFormView: UIView {
     private let allDaySwitch = UISwitch()
 
     private let timingContainer = UIView()
-    private let startDatePicker = UIDatePicker()
-    private let endDatePicker = UIDatePicker()
-    private let arrowLabel: UILabel = {
-        let l = UILabel()
-        l.text = "→"
-        l.font = .systemFont(ofSize: 18, weight: .medium)
-        l.textColor = AppTheme.secondaryText
-        l.textAlignment = .center
-        l.translatesAutoresizingMaskIntoConstraints = false
-        return l
-    }()
 
-    private let timingRow = UIStackView()
+    /// Split date / time so compact controls stay readable full-width without inline month grids.
+    private let startDayPicker = UIDatePicker()
+    private let startTimePicker = UIDatePicker()
+    private let endDayPicker = UIDatePicker()
+    private let endTimePicker = UIDatePicker()
+
+    /// Full-width vertical stack: Starts → date + time, Ends → date + time.
+    private let timingStack: UIStackView = {
+        let s = UIStackView()
+        s.axis = .vertical
+        s.spacing = 12
+        s.alignment = .fill
+        s.translatesAutoresizingMaskIntoConstraints = false
+        return s
+    }()
 
     init(referenceDay: Date) {
         self.referenceDay = cal.startOfDay(for: referenceDay)
@@ -123,62 +126,63 @@ final class TaskFormView: UIView {
     private func setupTiming() {
         timingContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        startDatePicker.datePickerMode = .dateAndTime
-        endDatePicker.datePickerMode = .dateAndTime
-        if #available(iOS 15.0, *) {
-            startDatePicker.preferredDatePickerStyle = .compact
-            endDatePicker.preferredDatePickerStyle = .compact
+        let pickers: [UIDatePicker] = [startDayPicker, startTimePicker, endDayPicker, endTimePicker]
+        for p in pickers {
+            p.translatesAutoresizingMaskIntoConstraints = false
         }
-        startDatePicker.translatesAutoresizingMaskIntoConstraints = false
-        endDatePicker.translatesAutoresizingMaskIntoConstraints = false
-        startDatePicker.addAction(UIAction { [weak self] _ in self?.startDateEdited() }, for: .valueChanged)
-        endDatePicker.addAction(UIAction { [weak self] _ in self?.endDateEdited() }, for: .valueChanged)
+        startDayPicker.datePickerMode = .date
+        startTimePicker.datePickerMode = .time
+        endDayPicker.datePickerMode = .date
+        endTimePicker.datePickerMode = .time
+        if #available(iOS 14.0, *) {
+            for p in pickers {
+                p.preferredDatePickerStyle = .compact
+            }
+        }
+        startDayPicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
+        startTimePicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
+        endDayPicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
+        endTimePicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
 
-        let startCol = UIStackView()
-        startCol.axis = .vertical
-        startCol.spacing = 4
-        startCol.alignment = .leading
-        startCol.translatesAutoresizingMaskIntoConstraints = false
-        startCol.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let startCap = UILabel()
         startCap.text = "Starts"
-        startCap.font = .systemFont(ofSize: 12, weight: .semibold)
+        startCap.font = .systemFont(ofSize: 13, weight: .semibold)
         startCap.textColor = AppTheme.tertiaryText
-        startCol.addArrangedSubview(startCap)
-        startCol.addArrangedSubview(startDatePicker)
 
-        let endCol = UIStackView()
-        endCol.axis = .vertical
-        endCol.spacing = 4
-        endCol.alignment = .leading
-        endCol.translatesAutoresizingMaskIntoConstraints = false
-        endCol.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let endCap = UILabel()
         endCap.text = "Ends"
-        endCap.font = .systemFont(ofSize: 12, weight: .semibold)
+        endCap.font = .systemFont(ofSize: 13, weight: .semibold)
         endCap.textColor = AppTheme.tertiaryText
-        endCol.addArrangedSubview(endCap)
-        endCol.addArrangedSubview(endDatePicker)
 
-        timingRow.axis = .horizontal
-        timingRow.spacing = 8
-        timingRow.alignment = .top
-        timingRow.distribution = .fill
-        timingRow.translatesAutoresizingMaskIntoConstraints = false
-        arrowLabel.setContentHuggingPriority(.required, for: .horizontal)
-        arrowLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
-        timingRow.addArrangedSubview(startCol)
-        timingRow.addArrangedSubview(arrowLabel)
-        timingRow.addArrangedSubview(endCol)
+        let startRow = UIStackView(arrangedSubviews: [startDayPicker, startTimePicker])
+        startRow.axis = .horizontal
+        startRow.spacing = 10
+        startRow.distribution = .fillEqually
+        startRow.alignment = .center
+        startRow.translatesAutoresizingMaskIntoConstraints = false
 
-        timingContainer.addSubview(timingRow)
+        let endRow = UIStackView(arrangedSubviews: [endDayPicker, endTimePicker])
+        endRow.axis = .horizontal
+        endRow.spacing = 10
+        endRow.distribution = .fillEqually
+        endRow.alignment = .center
+        endRow.translatesAutoresizingMaskIntoConstraints = false
+
+        timingStack.setCustomSpacing(6, after: startCap)
+        timingStack.setCustomSpacing(16, after: startRow)
+        timingStack.setCustomSpacing(6, after: endCap)
+
+        timingStack.addArrangedSubview(startCap)
+        timingStack.addArrangedSubview(startRow)
+        timingStack.addArrangedSubview(endCap)
+        timingStack.addArrangedSubview(endRow)
+
+        timingContainer.addSubview(timingStack)
         NSLayoutConstraint.activate([
-            timingRow.topAnchor.constraint(equalTo: timingContainer.topAnchor),
-            timingRow.leadingAnchor.constraint(equalTo: timingContainer.leadingAnchor),
-            timingRow.trailingAnchor.constraint(equalTo: timingContainer.trailingAnchor),
-            timingRow.bottomAnchor.constraint(equalTo: timingContainer.bottomAnchor),
-            startCol.widthAnchor.constraint(equalTo: endCol.widthAnchor),
-            arrowLabel.widthAnchor.constraint(equalToConstant: 28)
+            timingStack.topAnchor.constraint(equalTo: timingContainer.topAnchor),
+            timingStack.leadingAnchor.constraint(equalTo: timingContainer.leadingAnchor),
+            timingStack.trailingAnchor.constraint(equalTo: timingContainer.trailingAnchor),
+            timingStack.bottomAnchor.constraint(equalTo: timingContainer.bottomAnchor)
         ])
     }
 
@@ -245,18 +249,51 @@ final class TaskFormView: UIView {
         }
     }
 
+    private func combine(day daySource: Date, time timeSource: Date) -> Date {
+        let dc = cal.dateComponents([.year, .month, .day], from: cal.startOfDay(for: daySource))
+        let tc = cal.dateComponents([.hour, .minute, .second], from: timeSource)
+        var merged = DateComponents()
+        merged.year = dc.year
+        merged.month = dc.month
+        merged.day = dc.day
+        merged.hour = tc.hour
+        merged.minute = tc.minute
+        merged.second = tc.second
+        return cal.date(from: merged) ?? daySource
+    }
+
+    private func combinedStart() -> Date {
+        combine(day: startDayPicker.date, time: startTimePicker.date)
+    }
+
+    private func combinedEnd() -> Date {
+        combine(day: endDayPicker.date, time: endTimePicker.date)
+    }
+
+    private func applyStartToPickers(_ date: Date) {
+        startDayPicker.date = cal.startOfDay(for: date)
+        startTimePicker.date = date
+    }
+
+    private func applyEndToPickers(_ date: Date) {
+        endDayPicker.date = cal.startOfDay(for: date)
+        endTimePicker.date = date
+    }
+
     private func setDefaultTimes() {
         let now = Date()
         if cal.isDate(now, inSameDayAs: referenceDay) {
-            startDatePicker.date = now
-            endDatePicker.date = cal.date(byAdding: .hour, value: 1, to: now) ?? now
+            let end = cal.date(byAdding: .hour, value: 1, to: now) ?? now
+            applyStartToPickers(now)
+            applyEndToPickers(end)
         } else {
             var c = cal.dateComponents([.year, .month, .day], from: referenceDay)
             c.hour = 10
             c.minute = 0
             let start = cal.date(from: c) ?? referenceDay
-            startDatePicker.date = start
-            endDatePicker.date = cal.date(byAdding: .hour, value: 1, to: start) ?? start
+            let end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
+            applyStartToPickers(start)
+            applyEndToPickers(end)
         }
     }
 
@@ -271,21 +308,27 @@ final class TaskFormView: UIView {
     private func applyAllDayBounds() {
         let sod = cal.startOfDay(for: referenceDay)
         let eod = cal.date(byAdding: DateComponents(day: 1, second: -1), to: sod) ?? sod
-        startDatePicker.date = sod
-        endDatePicker.date = eod
+        applyStartToPickers(sod)
+        applyEndToPickers(eod)
     }
 
-    private func startDateEdited() {
+    private func startInputsChanged() {
         guard !allDaySwitch.isOn else { return }
-        if endDatePicker.date <= startDatePicker.date {
-            endDatePicker.date = cal.date(byAdding: .hour, value: 1, to: startDatePicker.date) ?? startDatePicker.date
+        let start = combinedStart()
+        var end = combinedEnd()
+        if end <= start {
+            end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
+            applyEndToPickers(end)
         }
     }
 
-    private func endDateEdited() {
+    private func endInputsChanged() {
         guard !allDaySwitch.isOn else { return }
-        if endDatePicker.date <= startDatePicker.date {
-            startDatePicker.date = cal.date(byAdding: .hour, value: -1, to: endDatePicker.date) ?? endDatePicker.date
+        let end = combinedEnd()
+        var start = combinedStart()
+        if end <= start {
+            start = cal.date(byAdding: .hour, value: -1, to: end) ?? end
+            applyStartToPickers(start)
         }
     }
 
@@ -298,8 +341,8 @@ final class TaskFormView: UIView {
         titleField.text = task.title
         selectPriority(task.priority)
         allDaySwitch.isOn = task.isAllDay
-        startDatePicker.date = task.startDate
-        endDatePicker.date = task.endDate
+        applyStartToPickers(task.startDate)
+        applyEndToPickers(task.endDate)
         timingContainer.isHidden = task.isAllDay
         if task.isAllDay {
             applyAllDayBounds()
@@ -310,8 +353,8 @@ final class TaskFormView: UIView {
         let raw = titleField.text?.trimmingCharacters(in: .whitespaces) ?? ""
         guard !raw.isEmpty else { return nil }
         let allDay = allDaySwitch.isOn
-        var start = startDatePicker.date
-        var end = endDatePicker.date
+        var start = combinedStart()
+        var end = combinedEnd()
         if allDay {
             let sod = cal.startOfDay(for: referenceDay)
             start = sod
