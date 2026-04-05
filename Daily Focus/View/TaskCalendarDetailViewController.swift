@@ -6,14 +6,16 @@ final class TaskCalendarDetailViewController: UIViewController {
     private let dayKey: String
     private var task: FocusTask
     private let onSave: (FocusTask) -> Void
+    private let onDelete: (() -> Void)?
 
     private let scrollView = UIScrollView()
     private let formView: TaskFormView
 
-    init(dayKey: String, task: FocusTask, onSave: @escaping (FocusTask) -> Void) {
+    init(dayKey: String, task: FocusTask, onSave: @escaping (FocusTask) -> Void, onDelete: (() -> Void)? = nil) {
         self.dayKey = dayKey
         self.task = task
         self.onSave = onSave
+        self.onDelete = onDelete
         guard let dayDate = DayKey.date(from: dayKey) else {
             fatalError("Invalid dayKey")
         }
@@ -35,12 +37,24 @@ final class TaskCalendarDetailViewController: UIViewController {
             target: self,
             action: #selector(cancelTapped)
         )
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let saveItem = UIBarButtonItem(
             title: "Save",
             style: .done,
             target: self,
             action: #selector(saveTapped)
         )
+        if onDelete != nil {
+            let deleteItem = UIBarButtonItem(
+                image: UIImage(systemName: "trash"),
+                style: .plain,
+                target: self,
+                action: #selector(deleteTapped)
+            )
+            deleteItem.tintColor = .systemRed
+            navigationItem.rightBarButtonItems = [saveItem, deleteItem]
+        } else {
+            navigationItem.rightBarButtonItem = saveItem
+        }
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         formView.apply(task: task)
@@ -76,5 +90,20 @@ final class TaskCalendarDetailViewController: UIViewController {
         updated.endDate = payload.endDate
         onSave(updated)
         dismiss(animated: true)
+    }
+
+    @objc private func deleteTapped() {
+        guard onDelete != nil else { return }
+        let alert = UIAlertController(
+            title: "Delete this task?",
+            message: "This focus task will be removed from your calendar.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.onDelete?()
+            self?.dismiss(animated: true)
+        })
+        present(alert, animated: true)
     }
 }
