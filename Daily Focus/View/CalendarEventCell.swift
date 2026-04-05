@@ -68,26 +68,35 @@ final class CalendarEventCell: UITableViewCell {
         titleLabel.text = task.title
         accentBar.backgroundColor = priorityColor(task.priority)
 
-        let cal = Calendar.current
-        let start = task.createdAt
-        let end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
-
-        let shortFmt = DateFormatter()
-        shortFmt.locale = Locale.current
-        shortFmt.dateFormat = "h:mm"
-
         let longFmt = DateFormatter()
         longFmt.locale = Locale.current
         longFmt.dateFormat = "h:mm a"
 
-        timeLabel.text = shortFmt.string(from: start)
-        subtitleLabel.text = "\(longFmt.string(from: start)) – \(longFmt.string(from: end))"
+        if task.isAllDay {
+            timeLabel.text = "All day"
+            if let d = DayKey.date(from: task.dayKey) {
+                let df = DateFormatter()
+                df.locale = Locale.current
+                df.dateFormat = "MMM d, yyyy"
+                subtitleLabel.text = df.string(from: d)
+            } else {
+                subtitleLabel.text = task.dayKey
+            }
+        } else {
+            let shortFmt = DateFormatter()
+            shortFmt.locale = Locale.current
+            shortFmt.dateFormat = "h:mm"
+            timeLabel.text = shortFmt.string(from: task.startDate)
+            subtitleLabel.text = "\(longFmt.string(from: task.startDate)) – \(longFmt.string(from: task.endDate))"
+        }
     }
 
     private func priorityColor(_ priority: TaskPriority) -> UIColor {
         switch priority {
-        case .high, .medium:
+        case .high:
             return AppTheme.calendarStripeBlue
+        case .medium:
+            return AppTheme.priorityMedium
         case .low:
             return AppTheme.calendarStripeGreen
         }
