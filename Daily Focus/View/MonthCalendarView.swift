@@ -8,7 +8,7 @@ final class MonthCalendarView: UIView {
     }
 
     var displayedMonth: Date = Date() {
-        didSet { collectionView.reloadData(); updateMonthTitle(); updateTodayBadge() }
+        didSet { collectionView.reloadData(); updateMonthTitle() }
     }
 
     var selectedDayKey: String = DayKey.string(for: Date()) {
@@ -18,15 +18,8 @@ final class MonthCalendarView: UIView {
     var onDaySelected: ((String) -> Void)?
     var onPrevMonth: (() -> Void)?
     var onNextMonth: (() -> Void)?
-    var onSearchTapped: (() -> Void)?
 
     private let cal = Calendar.current
-
-    private let topBar = UIStackView()
-    private let menuButton = UIButton(type: .system)
-    private let searchButton = UIButton(type: .system)
-    private let todayBadge = UIView()
-    private let todayBadgeLabel = UILabel()
 
     private let monthTitleLabel: UILabel = {
         let l = UILabel()
@@ -94,11 +87,9 @@ final class MonthCalendarView: UIView {
         backgroundColor = AppTheme.calendarGridBackground
         translatesAutoresizingMaskIntoConstraints = false
 
-        configureTopBar()
         configureWeekdayRow()
         configureMonthHeader()
 
-        addSubview(topBar)
         addSubview(monthHeaderStack)
         addSubview(weekdayStack)
         addSubview(collectionView)
@@ -106,12 +97,7 @@ final class MonthCalendarView: UIView {
         collectionHeightConstraint = collectionView.heightAnchor.constraint(equalToConstant: 360)
 
         NSLayoutConstraint.activate([
-            topBar.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-            topBar.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            topBar.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            topBar.heightAnchor.constraint(equalToConstant: 44),
-
-            monthHeaderStack.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 4),
+            monthHeaderStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             monthHeaderStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             monthHeaderStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             monthHeaderStack.heightAnchor.constraint(equalToConstant: 36),
@@ -129,7 +115,6 @@ final class MonthCalendarView: UIView {
         ])
 
         updateMonthTitle()
-        updateTodayBadge()
     }
 
     required init?(coder: NSCoder) {
@@ -158,7 +143,7 @@ final class MonthCalendarView: UIView {
             let w = collectionView.bounds.width
             let rows = CGFloat(max(1, gridDays().count / 7))
             let cellW = floor(w / 7)
-            let cellH: CGFloat = 68
+            let cellH: CGFloat = 72
             layout.itemSize = CGSize(width: cellW, height: cellH)
             layout.invalidateLayout()
             collectionHeightConstraint.constant = rows * cellH
@@ -168,51 +153,6 @@ final class MonthCalendarView: UIView {
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         collectionView.reloadData()
-    }
-
-    func setMenuAction(_ action: UIAction) {
-        menuButton.removeTarget(nil, action: nil, for: .allEvents)
-        menuButton.addAction(action, for: .touchUpInside)
-    }
-
-    private func configureTopBar() {
-        topBar.axis = .horizontal
-        topBar.alignment = .center
-        topBar.distribution = .equalSpacing
-        topBar.translatesAutoresizingMaskIntoConstraints = false
-
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        menuButton.setImage(UIImage(systemName: "line.3.horizontal", withConfiguration: config), for: .normal)
-        menuButton.tintColor = AppTheme.primaryText
-
-        searchButton.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: config), for: .normal)
-        searchButton.tintColor = AppTheme.primaryText
-        searchButton.addAction(UIAction { [weak self] _ in self?.onSearchTapped?() }, for: .touchUpInside)
-
-        todayBadge.backgroundColor = AppTheme.cardBackground
-        todayBadge.layer.cornerRadius = 8
-        todayBadge.layer.cornerCurve = .continuous
-        todayBadge.translatesAutoresizingMaskIntoConstraints = false
-        todayBadgeLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        todayBadgeLabel.textColor = AppTheme.primaryText
-        todayBadgeLabel.translatesAutoresizingMaskIntoConstraints = false
-        todayBadge.addSubview(todayBadgeLabel)
-        NSLayoutConstraint.activate([
-            todayBadge.widthAnchor.constraint(equalToConstant: 36),
-            todayBadge.heightAnchor.constraint(equalToConstant: 36),
-            todayBadgeLabel.centerXAnchor.constraint(equalTo: todayBadge.centerXAnchor),
-            todayBadgeLabel.centerYAnchor.constraint(equalTo: todayBadge.centerYAnchor)
-        ])
-
-        let leftStack = UIStackView(arrangedSubviews: [menuButton])
-        leftStack.alignment = .leading
-
-        let rightStack = UIStackView(arrangedSubviews: [searchButton, todayBadge])
-        rightStack.spacing = 12
-        rightStack.alignment = .center
-
-        topBar.addArrangedSubview(leftStack)
-        topBar.addArrangedSubview(rightStack)
     }
 
     private func configureWeekdayRow() {
@@ -237,11 +177,6 @@ final class MonthCalendarView: UIView {
         df.dateFormat = "LLLL"
         monthTitleLabel.text = df.string(from: displayedMonth).uppercased()
         monthTitleLabel.textColor = AppTheme.primaryText
-    }
-
-    private func updateTodayBadge() {
-        let d = cal.component(.day, from: Date())
-        todayBadgeLabel.text = "\(d)"
     }
 
     private func firstOfMonth(for date: Date) -> Date {
@@ -317,6 +252,8 @@ extension MonthCalendarView: UICollectionViewDataSource, UICollectionViewDelegat
 
 private final class CalendarDayCell: UICollectionViewCell {
     static let reuseId = "CalendarDayCell"
+    /// Space reserved for day number and selection ring; task stripes start below this so they never overlap.
+    static let dayChromeHeight: CGFloat = 42
 
     private let numberLabel = UILabel()
     private let selectionBox = UIView()
@@ -378,7 +315,7 @@ private final class CalendarDayCell: UICollectionViewCell {
 
             linesStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 2),
             linesStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -2),
-            linesStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 36),
+            linesStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: CalendarDayCell.dayChromeHeight),
             linesStack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -2)
         ])
     }
