@@ -263,9 +263,16 @@ final class CalendarViewController: UIViewController {
 
     private func presentDetail(for task: FocusTask) {
         let key = selectedDayKey
-        let detail = TaskCalendarDetailViewController(dayKey: key, task: task) { [weak self] updated in
-            self?.replaceTask(updated, dayKey: key)
-        }
+        let detail = TaskCalendarDetailViewController(
+            dayKey: key,
+            task: task,
+            onSave: { [weak self] updated in
+                self?.replaceTask(updated, dayKey: key)
+            },
+            onDelete: { [weak self] in
+                self?.deleteTask(task, dayKey: key)
+            }
+        )
         let nav = UINavigationController(rootViewController: detail)
         nav.modalPresentationStyle = .pageSheet
         if let sheet = nav.sheetPresentationController {
@@ -282,6 +289,15 @@ final class CalendarViewController: UIViewController {
             return
         }
         list[i] = task
+        map[dayKey] = list
+        persistence.saveTasksByDay(map)
+        reloadFromDisk()
+    }
+
+    private func deleteTask(_ task: FocusTask, dayKey: String) {
+        var map = persistence.loadTasksByDay()
+        guard var list = map[dayKey] else { return }
+        list.removeAll { $0.id == task.id }
         map[dayKey] = list
         persistence.saveTasksByDay(map)
         reloadFromDisk()
@@ -384,5 +400,17 @@ extension CalendarViewController: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         guard !displayedTasks.isEmpty else { return }
         presentDetail(for: displayedTasks[indexPath.row])
+    }
+
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard !displayedTasks.isEmpty else { return nil }
+        let task = displayedTasks[indexPath.row]
+        let dayKey = selectedDayKey
+        let delete = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+            self?.deleteTask(task, dayKey: dayKey)
+            completion(true)
+        }
+        delete.image = UIImage(systemName: "trash.fill")
+        return UISwipeActionsConfiguration(actions: [delete])
     }
 }
