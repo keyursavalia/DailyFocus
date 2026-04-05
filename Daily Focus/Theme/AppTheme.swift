@@ -89,4 +89,34 @@ enum AppTheme {
     static let priorityLow = UIColor(red: 0.35, green: 0.6, blue: 0.4, alpha: 1)
 
     static let carriedOverOrange = UIColor(red: 1.0, green: 0.65, blue: 0.0, alpha: 1)
+
+    // Calendar (dark-first; light mode uses similar structure)
+    static let calendarGridBackground = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor.black
+            : UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1)
+    }
+
+    static let calendarPanelBackground = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.06, green: 0.06, blue: 0.07, alpha: 1)
+            : UIColor(red: 0.96, green: 0.96, blue: 0.98, alpha: 1)
+    }
+
+    static let calendarDayDimmed = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.35, alpha: 1)
+            : UIColor(white: 0.55, alpha: 1)
+    }
+
+    /// Task stripes under dates (blue family)
+    static let calendarStripeBlue = UIColor(red: 0.2, green: 0.55, blue: 1.0, alpha: 1)
+    /// Task stripes under dates (green family)
+    static let calendarStripeGreen = UIColor(red: 0.25, green: 0.78, blue: 0.45, alpha: 1)
+
+    static let calendarFABBackground = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.28, alpha: 1)
+            : UIColor(white: 0.85, alpha: 1)
+    }
 }
