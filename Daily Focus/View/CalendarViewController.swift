@@ -22,7 +22,7 @@ final class CalendarViewController: UIViewController {
     private let cal = Calendar.current
 
     private var displayedTasks: [FocusTask] {
-        (tasksByDay[selectedDayKey] ?? []).sorted { $0.createdAt < $1.createdAt }
+        (tasksByDay[selectedDayKey] ?? []).sorted { $0.startDate < $1.startDate }
     }
 
     override func viewDidLoad() {
@@ -82,7 +82,7 @@ final class CalendarViewController: UIViewController {
         dayPanel.backgroundColor = AppTheme.calendarPanelBackground
         dayPanel.translatesAutoresizingMaskIntoConstraints = false
 
-        dayTitleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        dayTitleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
         dayTitleLabel.textColor = AppTheme.primaryText
         dayTitleLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -170,12 +170,12 @@ final class CalendarViewController: UIViewController {
             monthCalendarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             monthCalendarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            dayPanel.topAnchor.constraint(equalTo: monthCalendarView.bottomAnchor),
+            dayPanel.topAnchor.constraint(equalTo: monthCalendarView.bottomAnchor, constant: 0),
             dayPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             dayPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             dayPanel.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -8),
 
-            dayTitleLabel.topAnchor.constraint(equalTo: dayPanel.safeAreaLayoutGuide.topAnchor, constant: 12),
+            dayTitleLabel.topAnchor.constraint(equalTo: dayPanel.safeAreaLayoutGuide.topAnchor, constant: 8),
             dayTitleLabel.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor, constant: 20),
             dayTitleLabel.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor, constant: -20),
 
@@ -235,12 +235,10 @@ final class CalendarViewController: UIViewController {
 
     private func updateDayTitle() {
         guard let d = DayKey.date(from: selectedDayKey) else { return }
-        let dayNum = cal.component(.day, from: d)
         let df = DateFormatter()
         df.locale = Locale.current
-        df.dateFormat = "EEE"
-        let wd = df.string(from: d).uppercased()
-        dayTitleLabel.text = "\(dayNum) \(wd)"
+        df.dateFormat = "MMMM d · EEE"
+        dayTitleLabel.text = df.string(from: d)
     }
 
     private func updateQuickAddTitle() {
@@ -254,7 +252,9 @@ final class CalendarViewController: UIViewController {
 
     private func reloadFromDisk() {
         tasksByDay = persistence.loadTasksByDay()
-        sideToolsDrawer.updateResetButtonVisibility(hasTasks: !tasksByDay.values.flatMap { $0 }.isEmpty)
+        let todayKey = DayKey.string(for: Date())
+        let todayOnly = tasksByDay[todayKey] ?? []
+        sideToolsDrawer.updateResetButtonVisibility(hasTasks: !todayOnly.isEmpty)
         syncMonthViewState()
         updateDayTitle()
         updateQuickAddTitle()
@@ -262,7 +262,10 @@ final class CalendarViewController: UIViewController {
     }
 
     private func presentDetail(for task: FocusTask) {
-        let detail = TaskCalendarDetailViewController(task: task)
+        let key = selectedDayKey
+        let detail = TaskCalendarDetailViewController(dayKey: key, task: task) { [weak self] updated in
+            self?.replaceTask(updated, dayKey: key)
+        }
         let nav = UINavigationController(rootViewController: detail)
         nav.modalPresentationStyle = .pageSheet
         if let sheet = nav.sheetPresentationController {
@@ -272,6 +275,18 @@ final class CalendarViewController: UIViewController {
         present(nav, animated: true)
     }
 
+    private func replaceTask(_ task: FocusTask, dayKey: String) {
+        var map = persistence.loadTasksByDay()
+        guard var list = map[dayKey], let i = list.firstIndex(where: { $0.id == task.id }) else {
+            reloadFromDisk()
+            return
+        }
+        list[i] = task
+        map[dayKey] = list
+        persistence.saveTasksByDay(map)
+        reloadFromDisk()
+    }
+
     private func presentAddTask() {
         let dayTasks = tasksByDay[selectedDayKey] ?? []
         guard dayTasks.count < 3 else {
@@ -279,16 +294,12 @@ final class CalendarViewController: UIViewController {
             return
         }
 
-        let addTaskSheet = AddTaskSheetView()
-        addTaskSheet.onAddTapped = { [weak self] text, priority in
+        guard let dayDate = DayKey.date(from: selectedDayKey) else { return }
+        let addTaskSheet = AddTaskSheetView(referenceDay: dayDate)
+        addTaskSheet.onSave = { [weak self] payload in
             guard let self else { return }
-            guard !text.trimmingCharacters(in: .whitespaces).isEmpty else {
-                addTaskSheet.dismiss()
-                self.showErrorAlert(error: .emptyTitle)
-                return
-            }
             addTaskSheet.dismiss()
-            self.addTask(title: text, priority: priority, dayKey: self.selectedDayKey)
+            self.addTask(payload: payload, dayKey: self.selectedDayKey)
         }
         addTaskSheet.onCancelTapped = {
             addTaskSheet.dismiss()
@@ -296,7 +307,7 @@ final class CalendarViewController: UIViewController {
         addTaskSheet.show(in: view)
     }
 
-    private func addTask(title: String, priority: TaskPriority, dayKey: String) {
+    private func addTask(payload: TaskFormPayload, dayKey: String) {
         var map = persistence.loadTasksByDay()
         var list = map[dayKey] ?? []
         guard list.count < 3 else {
@@ -304,12 +315,15 @@ final class CalendarViewController: UIViewController {
             return
         }
         let task = FocusTask(
-            title: title.trimmingCharacters(in: .whitespaces),
+            title: payload.title.trimmingCharacters(in: .whitespaces),
             isCompleted: false,
-            priority: priority,
+            priority: payload.priority,
             isCarriedOver: false,
             createdAt: Date(),
-            dayKey: dayKey
+            dayKey: dayKey,
+            isAllDay: payload.isAllDay,
+            startDate: payload.startDate,
+            endDate: payload.endDate
         )
         list.append(task)
         map[dayKey] = list
@@ -325,14 +339,18 @@ final class CalendarViewController: UIViewController {
 
     private func showResetConfirmation() {
         let alert = UIAlertController(
-            title: "Reset All Tasks",
-            message: "Are you sure you want to delete all tasks? This action cannot be undone.",
+            title: "Reset Today’s Tasks",
+            message: "This removes every focus task scheduled for today only. Tasks on other days are kept.",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.addAction(UIAlertAction(title: "Reset", style: .destructive) { [weak self] _ in
-            PersistenceManager.shared.clearAllTasks()
-            self?.reloadFromDisk()
+            guard let self else { return }
+            var map = self.persistence.loadTasksByDay()
+            let todayKey = DayKey.string(for: Date())
+            map[todayKey] = []
+            self.persistence.saveTasksByDay(map)
+            self.reloadFromDisk()
         })
         present(alert, animated: true)
     }
