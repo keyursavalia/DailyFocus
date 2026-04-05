@@ -1,64 +1,72 @@
 import UIKit
 
 class AddTaskSheetView: UIView {
-    
-    // MARK: - UI Components
+
     private let dimmedBackground: UIView = {
         let view = UIView()
         view.backgroundColor = AppTheme.dimmedOverlay
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let cardView: UIView = {
         let view = UIView()
         view.backgroundColor = AppTheme.elevatedBackground
         view.layer.cornerRadius = 20
+        view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
+    private let scrollView: UIScrollView = {
+        let s = UIScrollView()
+        s.translatesAutoresizingMaskIntoConstraints = false
+        s.alwaysBounceVertical = true
+        s.keyboardDismissMode = .interactive
+        // UIScrollView has no intrinsic height; without this, Auto Layout can compress
+        // the scroll area to 0 when the card is only vertically centered with max height.
+        s.setContentCompressionResistancePriority(.required, for: .vertical)
+        return s
+    }()
+
+    private let contentStack: UIStackView = {
+        let s = UIStackView()
+        s.axis = .vertical
+        s.spacing = 16
+        s.alignment = .fill
+        s.translatesAutoresizingMaskIntoConstraints = false
+        return s
+    }()
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "New Focus"
         label.font = .systemFont(ofSize: 20, weight: .bold)
         label.textColor = AppTheme.primaryText
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.text = "Enter your task and choose a priority."
+        label.text = "Name your task, set priority, then optional timing."
         label.font = .systemFont(ofSize: 15, weight: .regular)
         label.textColor = AppTheme.secondaryText
-        label.translatesAutoresizingMaskIntoConstraints = false
+        label.numberOfLines = 0
         return label
     }()
-    
-    private let taskTextField: UITextField = {
-        let field = UITextField()
-        field.font = .systemFont(ofSize: 17, weight: .regular)
-        field.textColor = AppTheme.primaryText
-        field.backgroundColor = AppTheme.fieldBackground
-        field.layer.cornerRadius = 12
-        field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        field.leftViewMode = .always
-        field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        field.rightViewMode = .always
-        field.translatesAutoresizingMaskIntoConstraints = false
-        return field
+
+    private let formView: TaskFormView
+    private let addButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Add", for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        button.backgroundColor = AppTheme.accent
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
-    
-    private let priorityStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fillEqually
-        stack.spacing = 12
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
-    
+
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Cancel", for: .normal)
@@ -66,159 +74,109 @@ class AddTaskSheetView: UIView {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
-    // MARK: - Properties
-    var onAddTapped: ((String, TaskPriority) -> Void)?
+
+    private let referenceDay: Date
+
+    var onSave: ((TaskFormPayload) -> Void)?
     var onCancelTapped: (() -> Void)?
-    
-    // MARK: - Initialization
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+
+    init(referenceDay: Date) {
+        self.referenceDay = referenceDay
+        self.formView = TaskFormView(referenceDay: referenceDay)
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
         setupUI()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    // MARK: - Setup
+
     private func setupUI() {
-        applyTheme()
-        
         addSubview(dimmedBackground)
         addSubview(cardView)
-        
-        cardView.addSubview(titleLabel)
-        cardView.addSubview(messageLabel)
-        cardView.addSubview(taskTextField)
-        cardView.addSubview(priorityStackView)
+        cardView.addSubview(scrollView)
+        scrollView.addSubview(contentStack)
+
+        contentStack.addArrangedSubview(titleLabel)
+        contentStack.addArrangedSubview(messageLabel)
+        contentStack.addArrangedSubview(formView)
+
+        cardView.addSubview(addButton)
         cardView.addSubview(cancelButton)
-        
-        let priorities: [(String, TaskPriority)] = [
-            ("High", .high),
-            ("Medium", .medium),
-            ("Low", .low)
-        ]
-        
-        for (title, priority) in priorities {
-            let button = createPriorityButton(title: title, priority: priority)
-            priorityStackView.addArrangedSubview(button)
-        }
-        
+
         dimmedBackground.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dimmedTapped)))
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        
+        addButton.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
+
         NSLayoutConstraint.activate([
             dimmedBackground.topAnchor.constraint(equalTo: topAnchor),
             dimmedBackground.leadingAnchor.constraint(equalTo: leadingAnchor),
             dimmedBackground.trailingAnchor.constraint(equalTo: trailingAnchor),
             dimmedBackground.bottomAnchor.constraint(equalTo: bottomAnchor),
-            
+
             cardView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
             cardView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
             cardView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            
-            titleLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
-            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
-            
-            messageLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            messageLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
-            messageLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
-            
-            taskTextField.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 20),
-            taskTextField.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
-            taskTextField.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
-            taskTextField.heightAnchor.constraint(equalToConstant: 48),
-            
-            priorityStackView.topAnchor.constraint(equalTo: taskTextField.bottomAnchor, constant: 20),
-            priorityStackView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
-            priorityStackView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
-            priorityStackView.heightAnchor.constraint(equalToConstant: 44),
-            
-            cancelButton.topAnchor.constraint(equalTo: priorityStackView.bottomAnchor, constant: 24),
+            cardView.heightAnchor.constraint(lessThanOrEqualTo: safeAreaLayoutGuide.heightAnchor, constant: -48),
+
+            // Reserve real space for the form; otherwise the scroll view collapses vertically.
+            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
+
+            scrollView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 20),
+            scrollView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -16),
+
+            contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: 20),
+            contentStack.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -20),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+
+            addButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
+            addButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
+            addButton.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -12),
+            addButton.heightAnchor.constraint(equalToConstant: 48),
+
             cancelButton.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
-            cancelButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -24)
+            cancelButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16)
         ])
     }
-    
-    private func applyTheme() {
-        dimmedBackground.backgroundColor = AppTheme.dimmedOverlay
-        cardView.backgroundColor = AppTheme.elevatedBackground
-        titleLabel.textColor = AppTheme.primaryText
-        messageLabel.textColor = AppTheme.secondaryText
-        taskTextField.textColor = AppTheme.primaryText
-        taskTextField.backgroundColor = AppTheme.fieldBackground
-        taskTextField.attributedPlaceholder = NSAttributedString(
-            string: "Enter task...",
-            attributes: [.foregroundColor: AppTheme.secondaryText]
-        )
-        cancelButton.setTitleColor(AppTheme.secondaryText, for: .normal)
+
+    func applyPrefill(_ task: FocusTask?) {
+        formView.apply(task: task)
     }
-    
-    private func createPriorityButton(title: String, priority: TaskPriority) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        switch priority {
-        case .high:
-            button.backgroundColor = AppTheme.priorityHigh
-        case .medium:
-            button.backgroundColor = AppTheme.priorityMedium
-        case .low:
-            button.backgroundColor = AppTheme.priorityLow
-        }
-        button.layer.cornerRadius = 10
-        button.tag = priority == .high ? 0 : (priority == .medium ? 1 : 2)
-        button.addTarget(self, action: #selector(priorityButtonTapped(_:)), for: .touchUpInside)
-        return button
+
+    @objc private func addTapped() {
+        guard let payload = formView.collectPayload() else { return }
+        onSave?(payload)
     }
-    
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        applyTheme()
-    }
-    
-    // MARK: - Actions
-    @objc private func priorityButtonTapped(_ sender: UIButton) {
-        let priority: TaskPriority = sender.tag == 0 ? .high : (sender.tag == 1 ? .medium : .low)
-        let text = taskTextField.text?.trimmingCharacters(in: .whitespaces) ?? ""
-        onAddTapped?(text, priority)
-    }
-    
+
     @objc private func cancelTapped() {
         onCancelTapped?()
     }
-    
+
     @objc private func dimmedTapped() {
         onCancelTapped?()
     }
-    
-    // MARK: - Public
+
     func show(in view: UIView) {
-        translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(self)
-        
         NSLayoutConstraint.activate([
             topAnchor.constraint(equalTo: view.topAnchor),
             leadingAnchor.constraint(equalTo: view.leadingAnchor),
             trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        
         alpha = 0
-        UIView.animate(withDuration: 0.25) {
-            self.alpha = 1
-        }
-        taskTextField.becomeFirstResponder()
+        UIView.animate(withDuration: 0.25) { self.alpha = 1 }
+        layoutIfNeeded()
+        formView.focusTitleField()
     }
-    
+
     func dismiss() {
-        taskTextField.resignFirstResponder()
-        UIView.animate(withDuration: 0.25, animations: {
-            self.alpha = 0
-        }) { _ in
+        formView.endEditing(true)
+        UIView.animate(withDuration: 0.25, animations: { self.alpha = 0 }) { _ in
             self.removeFromSuperview()
         }
     }
