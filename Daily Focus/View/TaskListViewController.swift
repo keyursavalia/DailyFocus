@@ -211,16 +211,11 @@ class TaskListViewController: UIViewController {
             return
         }
 
-        let addTaskSheet = AddTaskSheetView()
-        addTaskSheet.onAddTapped = { [weak self] text, priority in
-            guard let self = self else { return }
-            guard !text.isEmpty else {
-                addTaskSheet.dismiss()
-                self.showErrorAlert(error: .emptyTitle)
-                return
-            }
-            let result = self.viewModel.addTask(title: text, priority: priority)
+        let addTaskSheet = AddTaskSheetView(referenceDay: Calendar.current.startOfDay(for: Date()))
+        addTaskSheet.onSave = { [weak self] payload in
+            guard let self else { return }
             addTaskSheet.dismiss()
+            let result = self.viewModel.addTask(payload)
             self.handleAddTaskResult(result)
         }
         addTaskSheet.onCancelTapped = {
@@ -250,8 +245,8 @@ class TaskListViewController: UIViewController {
 
     private func showResetConfirmation() {
         let alert = UIAlertController(
-            title: "Reset All Tasks",
-            message: "Are you sure you want to delete all tasks? This action cannot be undone.",
+            title: "Reset Today’s Tasks",
+            message: "This removes every focus task scheduled for today only. Tasks on other days are kept.",
             preferredStyle: .alert
         )
 
