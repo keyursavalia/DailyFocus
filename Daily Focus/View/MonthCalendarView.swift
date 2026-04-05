@@ -102,16 +102,16 @@ final class MonthCalendarView: UIView {
             monthHeaderStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             monthHeaderStack.heightAnchor.constraint(equalToConstant: 36),
 
-            weekdayStack.topAnchor.constraint(equalTo: monthHeaderStack.bottomAnchor, constant: 12),
+            weekdayStack.topAnchor.constraint(equalTo: monthHeaderStack.bottomAnchor, constant: 8),
             weekdayStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             weekdayStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             weekdayStack.heightAnchor.constraint(equalToConstant: 22),
 
-            collectionView.topAnchor.constraint(equalTo: weekdayStack.bottomAnchor, constant: 4),
+            collectionView.topAnchor.constraint(equalTo: weekdayStack.bottomAnchor, constant: 2),
             collectionView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             collectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             collectionHeightConstraint,
-            collectionView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
+            collectionView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2)
         ])
 
         updateMonthTitle()
@@ -379,8 +379,10 @@ private final class CalendarDayCell: UICollectionViewCell {
 
     private func stripeColor(for priority: TaskPriority) -> UIColor {
         switch priority {
-        case .high, .medium:
+        case .high:
             return AppTheme.calendarStripeBlue
+        case .medium:
+            return AppTheme.priorityMedium
         case .low:
             return AppTheme.calendarStripeGreen
         }
