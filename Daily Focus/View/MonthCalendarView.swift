@@ -232,10 +232,12 @@ extension MonthCalendarView: UICollectionViewDataSource, UICollectionViewDelegat
         let item = days[indexPath.item]
         let tasks = (tasksByDay[item.dayKey] ?? []).sorted { $0.createdAt < $1.createdAt }
         let isSelected = item.dayKey == selectedDayKey
+        let isToday = item.dayKey == DayKey.string(for: Date())
         cell.configure(
             dayNumber: item.dayNumber,
             isInDisplayedMonth: item.isInDisplayedMonth,
             isSelected: isSelected,
+            isToday: isToday,
             tasks: tasks
         )
         return cell
@@ -252,71 +254,93 @@ extension MonthCalendarView: UICollectionViewDataSource, UICollectionViewDelegat
 
 private final class CalendarDayCell: UICollectionViewCell {
     static let reuseId = "CalendarDayCell"
-    /// Space reserved for day number and selection ring; task stripes start below this so they never overlap.
-    static let dayChromeHeight: CGFloat = 42
 
+    private static let stripeHeight: CGFloat = 3
+    private static let stripeSpacing: CGFloat = 2
+    private static let maxStripes = 3
+    /// Always reserve space for three stripes so the selection outline size never changes with task count.
+    static var linesSlotHeight: CGFloat {
+        CGFloat(maxStripes) * stripeHeight + CGFloat(maxStripes - 1) * stripeSpacing
+    }
+
+    /// Padding inside the white selection outline (breathing room on all sides).
+    private static let selectionInnerPadding: CGFloat = 6
+    /// Gap between the day number row and the stripe area (same for every day so the outline height never changes).
+    private static let spacingAfterNumberRow: CGFloat = 7
+
+    /// Wraps day number + task stripes; selection outline applies to this view so both are enclosed together.
+    private let selectionContainer = UIView()
+    private let numberRow = UIView()
+    /// Filled disk for the calendar **today** only; does not move with the selected day.
+    private let todayCircle = UIView()
     private let numberLabel = UILabel()
-    private let selectionBox = UIView()
-    private let selectionCircle = UIView()
-    private let circleLabel = UILabel()
+    /// Fixed-height region so empty days match days with tasks (outline never shrinks vertically).
+    private let linesSlotContainer = UIView()
     private let linesStack = UIStackView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.backgroundColor = .clear
 
+        selectionContainer.layer.cornerRadius = 9
+        selectionContainer.layer.cornerCurve = .continuous
+        selectionContainer.backgroundColor = .clear
+        selectionContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        numberRow.translatesAutoresizingMaskIntoConstraints = false
+
+        todayCircle.translatesAutoresizingMaskIntoConstraints = false
+        todayCircle.layer.cornerRadius = 14
+        todayCircle.isHidden = true
+
         numberLabel.font = .systemFont(ofSize: 16, weight: .medium)
         numberLabel.textAlignment = .center
         numberLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        selectionBox.layer.borderWidth = 1.5
-        selectionBox.layer.cornerRadius = 8
-        selectionBox.layer.cornerCurve = .continuous
-        selectionBox.isHidden = true
-        selectionBox.translatesAutoresizingMaskIntoConstraints = false
-
-        selectionCircle.backgroundColor = .white
-        selectionCircle.layer.cornerRadius = 14
-        selectionCircle.isHidden = true
-        selectionCircle.translatesAutoresizingMaskIntoConstraints = false
-
-        circleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        circleLabel.textColor = .black
-        circleLabel.textAlignment = .center
-        circleLabel.translatesAutoresizingMaskIntoConstraints = false
+        linesSlotContainer.translatesAutoresizingMaskIntoConstraints = false
+        linesSlotContainer.backgroundColor = .clear
 
         linesStack.axis = .vertical
-        linesStack.spacing = 2
+        linesStack.spacing = CalendarDayCell.stripeSpacing
         linesStack.alignment = .fill
         linesStack.translatesAutoresizingMaskIntoConstraints = false
 
-        contentView.addSubview(linesStack)
-        contentView.addSubview(selectionBox)
-        selectionBox.addSubview(selectionCircle)
-        selectionCircle.addSubview(circleLabel)
-        contentView.addSubview(numberLabel)
+        contentView.addSubview(selectionContainer)
+        selectionContainer.addSubview(numberRow)
+        numberRow.addSubview(todayCircle)
+        numberRow.addSubview(numberLabel)
+        selectionContainer.addSubview(linesSlotContainer)
+        linesSlotContainer.addSubview(linesStack)
 
         NSLayoutConstraint.activate([
-            numberLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            numberLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 2),
+            selectionContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 2),
+            selectionContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 2),
+            selectionContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -2),
+            selectionContainer.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -2),
 
-            selectionBox.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            selectionBox.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
-            selectionBox.widthAnchor.constraint(equalToConstant: 40),
-            selectionBox.heightAnchor.constraint(equalToConstant: 40),
+            numberRow.topAnchor.constraint(equalTo: selectionContainer.topAnchor, constant: CalendarDayCell.selectionInnerPadding),
+            numberRow.centerXAnchor.constraint(equalTo: selectionContainer.centerXAnchor),
+            numberRow.widthAnchor.constraint(greaterThanOrEqualToConstant: 32),
+            numberRow.heightAnchor.constraint(equalToConstant: 22),
 
-            selectionCircle.centerXAnchor.constraint(equalTo: selectionBox.centerXAnchor),
-            selectionCircle.centerYAnchor.constraint(equalTo: selectionBox.centerYAnchor),
-            selectionCircle.widthAnchor.constraint(equalToConstant: 28),
-            selectionCircle.heightAnchor.constraint(equalToConstant: 28),
+            todayCircle.centerXAnchor.constraint(equalTo: numberRow.centerXAnchor),
+            todayCircle.centerYAnchor.constraint(equalTo: numberRow.centerYAnchor),
+            todayCircle.widthAnchor.constraint(equalToConstant: 28),
+            todayCircle.heightAnchor.constraint(equalToConstant: 28),
 
-            circleLabel.centerXAnchor.constraint(equalTo: selectionCircle.centerXAnchor),
-            circleLabel.centerYAnchor.constraint(equalTo: selectionCircle.centerYAnchor),
+            numberLabel.centerXAnchor.constraint(equalTo: numberRow.centerXAnchor),
+            numberLabel.centerYAnchor.constraint(equalTo: numberRow.centerYAnchor),
 
-            linesStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 2),
-            linesStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -2),
-            linesStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: CalendarDayCell.dayChromeHeight),
-            linesStack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -2)
+            linesSlotContainer.topAnchor.constraint(equalTo: numberRow.bottomAnchor, constant: CalendarDayCell.spacingAfterNumberRow),
+
+            linesSlotContainer.leadingAnchor.constraint(equalTo: selectionContainer.leadingAnchor, constant: CalendarDayCell.selectionInnerPadding),
+            linesSlotContainer.trailingAnchor.constraint(equalTo: selectionContainer.trailingAnchor, constant: -CalendarDayCell.selectionInnerPadding),
+            linesSlotContainer.heightAnchor.constraint(equalToConstant: CalendarDayCell.linesSlotHeight),
+            linesSlotContainer.bottomAnchor.constraint(equalTo: selectionContainer.bottomAnchor, constant: -CalendarDayCell.selectionInnerPadding),
+
+            linesStack.topAnchor.constraint(equalTo: linesSlotContainer.topAnchor),
+            linesStack.leadingAnchor.constraint(equalTo: linesSlotContainer.leadingAnchor),
+            linesStack.trailingAnchor.constraint(equalTo: linesSlotContainer.trailingAnchor)
         ])
     }
 
@@ -324,38 +348,30 @@ private final class CalendarDayCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(dayNumber: Int, isInDisplayedMonth: Bool, isSelected: Bool, tasks: [FocusTask]) {
+    func configure(dayNumber: Int, isInDisplayedMonth: Bool, isSelected: Bool, isToday: Bool, tasks: [FocusTask]) {
         numberLabel.text = "\(dayNumber)"
-        circleLabel.text = "\(dayNumber)"
 
-        if isSelected {
-            numberLabel.isHidden = true
-            selectionBox.isHidden = false
-            selectionCircle.isHidden = false
-            if traitCollection.userInterfaceStyle == .dark {
-                selectionBox.layer.borderColor = UIColor.white.cgColor
-                selectionCircle.backgroundColor = .white
-                circleLabel.textColor = .black
-            } else {
-                selectionBox.layer.borderColor = UIColor.label.cgColor
-                selectionCircle.backgroundColor = .label
-                circleLabel.textColor = .systemBackground
-            }
-            selectionBox.backgroundColor = .clear
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        todayCircle.isHidden = !isToday
+        if isToday {
+            todayCircle.backgroundColor = isDark ? .white : .label
+            numberLabel.textColor = isDark ? .black : .systemBackground
         } else {
-            numberLabel.isHidden = false
-            selectionBox.isHidden = true
-            selectionCircle.isHidden = true
             numberLabel.textColor = isInDisplayedMonth ? AppTheme.primaryText : AppTheme.calendarDayDimmed
         }
 
+        selectionContainer.layer.borderWidth = isSelected ? 1.5 : 0
+        if isSelected {
+            selectionContainer.layer.borderColor = (isDark ? UIColor.white : UIColor.label).cgColor
+        }
+
         linesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let lines = tasks.prefix(3)
+        let lines = tasks.prefix(CalendarDayCell.maxStripes)
         for task in lines {
             let line = UIView()
             line.layer.cornerRadius = 1
             line.translatesAutoresizingMaskIntoConstraints = false
-            line.heightAnchor.constraint(equalToConstant: 3).isActive = true
+            line.heightAnchor.constraint(equalToConstant: CalendarDayCell.stripeHeight).isActive = true
             line.backgroundColor = stripeColor(for: task.priority)
             linesStack.addArrangedSubview(line)
         }
