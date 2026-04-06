@@ -77,6 +77,12 @@ class TaskListFooterView: UIView {
             messageLabel.text = "That's all for today. Stay focused."
         }
     }
+
+    /// Show or hide the pencil Add button. Hidden when 0 tasks (empty state covers it)
+    /// or when the daily limit of 3 is reached.
+    func setAddButtonVisible(_ visible: Bool) {
+        reflectButton.isHidden = !visible
+    }
     
     private func applyChrome() {
         messageLabel.textColor = AppTheme.secondaryText
