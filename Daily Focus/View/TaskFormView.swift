@@ -126,56 +126,23 @@ final class TaskFormView: UIView {
     private func setupTiming() {
         timingContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        let pickers: [UIDatePicker] = [startDayPicker, startTimePicker, endDayPicker, endTimePicker]
-        for p in pickers {
+        for p in [startDayPicker, startTimePicker, endDayPicker, endTimePicker] {
             p.translatesAutoresizingMaskIntoConstraints = false
+            if #available(iOS 14.0, *) { p.preferredDatePickerStyle = .compact }
         }
         startDayPicker.datePickerMode = .date
         startTimePicker.datePickerMode = .time
         endDayPicker.datePickerMode = .date
         endTimePicker.datePickerMode = .time
-        if #available(iOS 14.0, *) {
-            for p in pickers {
-                p.preferredDatePickerStyle = .compact
-            }
-        }
         startDayPicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
         startTimePicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
         endDayPicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
         endTimePicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
 
-        let startCap = UILabel()
-        startCap.text = "Starts"
-        startCap.font = .systemFont(ofSize: 13, weight: .semibold)
-        startCap.textColor = AppTheme.tertiaryText
-
-        let endCap = UILabel()
-        endCap.text = "Ends"
-        endCap.font = .systemFont(ofSize: 13, weight: .semibold)
-        endCap.textColor = AppTheme.tertiaryText
-
-        let startRow = UIStackView(arrangedSubviews: [startDayPicker, startTimePicker])
-        startRow.axis = .horizontal
-        startRow.spacing = 10
-        startRow.distribution = .fillEqually
-        startRow.alignment = .center
-        startRow.translatesAutoresizingMaskIntoConstraints = false
-
-        let endRow = UIStackView(arrangedSubviews: [endDayPicker, endTimePicker])
-        endRow.axis = .horizontal
-        endRow.spacing = 10
-        endRow.distribution = .fillEqually
-        endRow.alignment = .center
-        endRow.translatesAutoresizingMaskIntoConstraints = false
-
-        timingStack.setCustomSpacing(6, after: startCap)
-        timingStack.setCustomSpacing(16, after: startRow)
-        timingStack.setCustomSpacing(6, after: endCap)
-
-        timingStack.addArrangedSubview(startCap)
-        timingStack.addArrangedSubview(startRow)
-        timingStack.addArrangedSubview(endCap)
-        timingStack.addArrangedSubview(endRow)
+        let startCard = makePickerCard(caption: "Starts", dayPicker: startDayPicker, timePicker: startTimePicker)
+        let endCard = makePickerCard(caption: "Ends", dayPicker: endDayPicker, timePicker: endTimePicker)
+        timingStack.addArrangedSubview(startCard)
+        timingStack.addArrangedSubview(endCard)
 
         timingContainer.addSubview(timingStack)
         NSLayoutConstraint.activate([
@@ -184,6 +151,40 @@ final class TaskFormView: UIView {
             timingStack.trailingAnchor.constraint(equalTo: timingContainer.trailingAnchor),
             timingStack.bottomAnchor.constraint(equalTo: timingContainer.bottomAnchor)
         ])
+    }
+
+    private func makePickerCard(caption: String, dayPicker: UIDatePicker, timePicker: UIDatePicker) -> UIView {
+        let card = UIView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        card.backgroundColor = AppTheme.fieldBackground
+        card.layer.cornerRadius = 12
+
+        let cap = UILabel()
+        cap.text = caption.uppercased()
+        cap.font = .systemFont(ofSize: 11, weight: .semibold)
+        cap.textColor = AppTheme.tertiaryText
+        cap.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = UIStackView(arrangedSubviews: [dayPicker, timePicker])
+        row.axis = .horizontal
+        row.spacing = 8
+        row.distribution = .fillEqually
+        row.alignment = .center
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        card.addSubview(cap)
+        card.addSubview(row)
+        NSLayoutConstraint.activate([
+            cap.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
+            cap.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            cap.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+
+            row.topAnchor.constraint(equalTo: cap.bottomAnchor, constant: 8),
+            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10)
+        ])
+        return card
     }
 
     private func layoutForm() {
