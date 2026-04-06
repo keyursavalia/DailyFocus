@@ -1,13 +1,11 @@
 import UIKit
 
 enum AppearancePreference: Int {
-    case system = 0
     case light = 1
     case dark = 2
 
     var userInterfaceStyle: UIUserInterfaceStyle {
         switch self {
-        case .system: return .unspecified
         case .light: return .light
         case .dark: return .dark
         }
@@ -15,7 +13,6 @@ enum AppearancePreference: Int {
 
     var symbolName: String {
         switch self {
-        case .system: return "circle.lefthalf.filled"
         case .light: return "sun.max.fill"
         case .dark: return "moon.fill"
         }
@@ -23,9 +20,8 @@ enum AppearancePreference: Int {
 
     var accessibilityLabel: String {
         switch self {
-        case .system: return "Appearance: match system. Tap to use light mode."
-        case .light: return "Appearance: light. Tap to use dark mode."
-        case .dark: return "Appearance: dark. Tap to match system."
+        case .light: return "Light mode. Tap to switch to dark."
+        case .dark: return "Dark mode. Tap to switch to light."
         }
     }
 }
@@ -40,7 +36,7 @@ final class AppearanceManager {
     var preference: AppearancePreference {
         get {
             let raw = UserDefaults.standard.integer(forKey: defaultsKey)
-            return AppearancePreference(rawValue: raw) ?? .system
+            return AppearancePreference(rawValue: raw) ?? .dark
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
@@ -54,11 +50,7 @@ final class AppearanceManager {
     }
 
     func cyclePreference() {
-        switch preference {
-        case .system: preference = .light
-        case .light: preference = .dark
-        case .dark: preference = .system
-        }
+        preference = preference == .dark ? .light : .dark
     }
 
     private func applyToAllWindows() {
