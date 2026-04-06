@@ -192,6 +192,8 @@ class TaskListViewController: UIViewController {
         headerView.updateProgress(completed: completed, total: total)
         sideToolsDrawer.updateResetButtonVisibility(hasTasks: !isEmpty)
         footerView.updateMessage(isEmpty: isEmpty)
+        // Show the pencil Add button only when there are tasks but the limit isn't hit yet
+        footerView.setAddButtonVisible(total > 0 && total < 3)
 
         if total > 0 && completed == total && !hasShownCompletionCelebration {
             hasShownCompletionCelebration = true
