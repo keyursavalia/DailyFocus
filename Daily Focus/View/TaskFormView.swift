@@ -139,10 +139,8 @@ final class TaskFormView: UIView {
         endDayPicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
         endTimePicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
 
-        let startCard = makePickerCard(caption: "Starts", dayPicker: startDayPicker, timePicker: startTimePicker)
-        let endCard = makePickerCard(caption: "Ends", dayPicker: endDayPicker, timePicker: endTimePicker)
-        timingStack.addArrangedSubview(startCard)
-        timingStack.addArrangedSubview(endCard)
+        let combinedCard = makeTimingCard()
+        timingStack.addArrangedSubview(combinedCard)
 
         timingContainer.addSubview(timingStack)
         NSLayoutConstraint.activate([
@@ -153,14 +151,46 @@ final class TaskFormView: UIView {
         ])
     }
 
-    private func makePickerCard(caption: String, dayPicker: UIDatePicker, timePicker: UIDatePicker) -> UIView {
+    private func makeTimingCard() -> UIView {
         let card = UIView()
         card.translatesAutoresizingMaskIntoConstraints = false
         card.backgroundColor = AppTheme.fieldBackground
         card.layer.cornerRadius = 12
 
+        let startSection = makePickerSection(caption: "STARTS", dayPicker: startDayPicker, timePicker: startTimePicker)
+        let divider = UIView()
+        divider.translatesAutoresizingMaskIntoConstraints = false
+        divider.backgroundColor = AppTheme.border
+        let endSection = makePickerSection(caption: "ENDS", dayPicker: endDayPicker, timePicker: endTimePicker)
+
+        card.addSubview(startSection)
+        card.addSubview(divider)
+        card.addSubview(endSection)
+
+        NSLayoutConstraint.activate([
+            startSection.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
+            startSection.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            startSection.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+
+            divider.topAnchor.constraint(equalTo: startSection.bottomAnchor, constant: 10),
+            divider.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            divider.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            divider.heightAnchor.constraint(equalToConstant: 0.5),
+
+            endSection.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 10),
+            endSection.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            endSection.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            endSection.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10)
+        ])
+        return card
+    }
+
+    private func makePickerSection(caption: String, dayPicker: UIDatePicker, timePicker: UIDatePicker) -> UIView {
+        let section = UIView()
+        section.translatesAutoresizingMaskIntoConstraints = false
+
         let cap = UILabel()
-        cap.text = caption.uppercased()
+        cap.text = caption
         cap.font = .systemFont(ofSize: 11, weight: .semibold)
         cap.textColor = AppTheme.tertiaryText
         cap.translatesAutoresizingMaskIntoConstraints = false
@@ -172,19 +202,19 @@ final class TaskFormView: UIView {
         row.alignment = .center
         row.translatesAutoresizingMaskIntoConstraints = false
 
-        card.addSubview(cap)
-        card.addSubview(row)
+        section.addSubview(cap)
+        section.addSubview(row)
         NSLayoutConstraint.activate([
-            cap.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
-            cap.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            cap.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            cap.topAnchor.constraint(equalTo: section.topAnchor),
+            cap.leadingAnchor.constraint(equalTo: section.leadingAnchor),
+            cap.trailingAnchor.constraint(equalTo: section.trailingAnchor),
 
-            row.topAnchor.constraint(equalTo: cap.bottomAnchor, constant: 8),
-            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
-            row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10)
+            row.topAnchor.constraint(equalTo: cap.bottomAnchor, constant: 6),
+            row.leadingAnchor.constraint(equalTo: section.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: section.trailingAnchor),
+            row.bottomAnchor.constraint(equalTo: section.bottomAnchor)
         ])
-        return card
+        return section
     }
 
     private func layoutForm() {
