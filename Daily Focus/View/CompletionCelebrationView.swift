@@ -45,10 +45,10 @@ final class CompletionCelebrationView: UIView {
         pv.backgroundColor = .clear
         addSubview(pv)
         NSLayoutConstraint.activate([
-            pv.centerXAnchor.constraint(equalTo: centerXAnchor),
-            pv.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -36),
-            pv.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 1.0),
-            pv.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.5)
+            pv.topAnchor.constraint(equalTo: topAnchor),
+            pv.leadingAnchor.constraint(equalTo: leadingAnchor),
+            pv.trailingAnchor.constraint(equalTo: trailingAnchor),
+            pv.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         playerView = pv
         _ = pv.play()
