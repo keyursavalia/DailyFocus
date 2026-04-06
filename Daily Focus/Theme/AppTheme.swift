@@ -83,10 +83,22 @@ enum AppTheme {
 
     static let blueDot = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1)
 
-    // Priority chips (subtle in both modes)
-    static let priorityHigh = UIColor(red: 0.75, green: 0.35, blue: 0.35, alpha: 1)
-    static let priorityMedium = UIColor(red: 0.75, green: 0.65, blue: 0.25, alpha: 1)
-    static let priorityLow = UIColor(red: 0.35, green: 0.6, blue: 0.4, alpha: 1)
+    // Priority chips — darker/richer in light mode for readability; softer in dark mode
+    static let priorityHigh = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.75, green: 0.30, blue: 0.30, alpha: 1)
+            : UIColor(red: 0.82, green: 0.16, blue: 0.16, alpha: 1)
+    }
+    static let priorityMedium = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.75, green: 0.60, blue: 0.20, alpha: 1)
+            : UIColor(red: 0.78, green: 0.52, blue: 0.02, alpha: 1)
+    }
+    static let priorityLow = UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.30, green: 0.58, blue: 0.38, alpha: 1)
+            : UIColor(red: 0.12, green: 0.58, blue: 0.28, alpha: 1)
+    }
 
     static let carriedOverOrange = UIColor(red: 1.0, green: 0.65, blue: 0.0, alpha: 1)
 
@@ -94,13 +106,13 @@ enum AppTheme {
     static let calendarGridBackground = UIColor { tc in
         tc.userInterfaceStyle == .dark
             ? UIColor.black
-            : UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1)
+            : UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1)
     }
 
     static let calendarPanelBackground = UIColor { tc in
         tc.userInterfaceStyle == .dark
             ? UIColor(red: 0.06, green: 0.06, blue: 0.07, alpha: 1)
-            : UIColor(red: 0.96, green: 0.96, blue: 0.98, alpha: 1)
+            : UIColor.white
     }
 
     static let calendarDayDimmed = UIColor { tc in
