@@ -40,18 +40,26 @@ class AddTaskSheetView: UIView {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "New Focus"
-        label.font = .systemFont(ofSize: 20, weight: .bold)
-        label.textColor = AppTheme.primaryText
+        label.translatesAutoresizingMaskIntoConstraints = false
+        let str = NSMutableAttributedString()
+        str.append(NSAttributedString(string: "New ", attributes: [
+            .font: UIFont.systemFont(ofSize: 26, weight: .heavy),
+            .foregroundColor: AppTheme.accent
+        ]))
+        str.append(NSAttributedString(string: "Focus", attributes: [
+            .font: UIFont.systemFont(ofSize: 26, weight: .heavy),
+            .foregroundColor: AppTheme.primaryText
+        ]))
+        label.attributedText = str
         return label
     }()
 
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.text = "Name your task, set priority, then optional timing."
-        label.font = .systemFont(ofSize: 15, weight: .regular)
-        label.textColor = AppTheme.secondaryText
-        label.numberOfLines = 0
+        label.text = "Name it · set priority · schedule it"
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = AppTheme.tertiaryText
+        label.numberOfLines = 1
         return label
     }()
 
