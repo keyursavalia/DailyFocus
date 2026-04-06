@@ -130,9 +130,9 @@ class EmptyStateView: UIView {
     
     private func setupInstructions() {
         let instructions = [
-            ("1", "Tap the 'Add' button below to create your first task"),
-            ("2", "Choose a priority level (High, Medium, or Low)"),
-            ("3", "Tap the circle to mark tasks as complete"),
+            ("1", "Tap 'Get Started' to create your first focus task"),
+            ("2", "Choose a priority level — High, Medium, or Low"),
+            ("3", "Tap the circle next to a task to mark it complete"),
             ("4", "Focus on up to 3 tasks per day for maximum productivity")
         ]
         
