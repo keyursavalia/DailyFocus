@@ -2,10 +2,20 @@ import UIKit
 
 class TaskListHeaderView: UIView {
 
+    private let overviewLabel: UILabel = {
+        let label = UILabel()
+        label.text = "OVERVIEW"
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = AppTheme.secondaryText
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
     private let todayLabel: UILabel = {
         let label = UILabel()
         label.text = "TODAY'S FOCUS"
-        label.font = .systemFont(ofSize: 32, weight: .bold)
+        label.font = .systemFont(ofSize: 28, weight: .bold)
         label.textColor = AppTheme.primaryText
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
@@ -42,23 +52,27 @@ class TaskListHeaderView: UIView {
         backgroundColor = .clear
 
         addSubview(blueDot)
+        addSubview(overviewLabel)
         addSubview(todayLabel)
         addSubview(progressView)
 
         NSLayoutConstraint.activate([
             blueDot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
             blueDot.centerYAnchor.constraint(equalTo: centerYAnchor),
-            blueDot.widthAnchor.constraint(equalToConstant: 12),
-            blueDot.heightAnchor.constraint(equalToConstant: 12),
+            blueDot.widthAnchor.constraint(equalToConstant: 10),
+            blueDot.heightAnchor.constraint(equalToConstant: 10),
 
-            todayLabel.leadingAnchor.constraint(equalTo: blueDot.trailingAnchor, constant: 12),
-            todayLabel.centerYAnchor.constraint(equalTo: blueDot.centerYAnchor),
+            overviewLabel.leadingAnchor.constraint(equalTo: blueDot.trailingAnchor, constant: 8),
+            overviewLabel.bottomAnchor.constraint(equalTo: todayLabel.topAnchor, constant: -2),
+
+            todayLabel.leadingAnchor.constraint(equalTo: overviewLabel.leadingAnchor),
+            todayLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 4),
             todayLabel.trailingAnchor.constraint(lessThanOrEqualTo: progressView.leadingAnchor, constant: -12),
 
             progressView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
             progressView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            progressView.widthAnchor.constraint(equalToConstant: 56),
-            progressView.heightAnchor.constraint(equalToConstant: 56)
+            progressView.widthAnchor.constraint(equalToConstant: 62),
+            progressView.heightAnchor.constraint(equalToConstant: 62)
         ])
     }
 
