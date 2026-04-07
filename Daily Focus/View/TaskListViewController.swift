@@ -101,7 +101,7 @@ class TaskListViewController: UIViewController {
 
     private func configureHeader() {
         headerView.translatesAutoresizingMaskIntoConstraints = false
-        headerHeightConstraint = headerView.heightAnchor.constraint(equalToConstant: 100)
+        headerHeightConstraint = headerView.heightAnchor.constraint(equalToConstant: 170)
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -137,6 +137,8 @@ class TaskListViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(TaskCardCell.self, forCellReuseIdentifier: TaskCardCell.identifier)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 130
         tableView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
@@ -192,7 +194,7 @@ class TaskListViewController: UIViewController {
         emptyStateView.isHidden = !isEmpty
         tableView.isHidden = isEmpty
         headerView.isHidden = isEmpty
-        headerHeightConstraint.constant = isEmpty ? 0 : 100
+        headerHeightConstraint.constant = isEmpty ? 0 : 170
         headerView.updateProgress(completed: completed, total: total)
         sideToolsDrawer.updateResetButtonVisibility(hasTasks: !isEmpty)
         footerView.updateMessage(isEmpty: isEmpty)
@@ -283,7 +285,16 @@ extension TaskListViewController: UITableViewDataSource {
             return cell
         }
 
-        cell.configure(with: task)
+        let firstNonCompleted = viewModel.tasks.firstIndex(where: { !$0.isCompleted })
+        let state: TaskDisplayState
+        if task.isCompleted {
+            state = .completed
+        } else if indexPath.row == firstNonCompleted {
+            state = .inFocus
+        } else {
+            state = .nextUp
+        }
+        cell.configure(with: task, state: state)
         cell.onCheckmarkTapped = { [weak self] in
             self?.viewModel.toggleTaskCompletion(at: indexPath.row)
         }
@@ -301,7 +312,7 @@ extension TaskListViewController: UITableViewDataSource {
 
 extension TaskListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        100
+        UITableView.automaticDimension
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
