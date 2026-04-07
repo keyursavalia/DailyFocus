@@ -1,112 +1,115 @@
 import UIKit
 
 class TaskListFooterView: UIView {
-    
+
     // MARK: - UI Components
+
     private let messageLabel: UILabel = {
-        let label = UILabel()
-        label.text = "That's all for today. Stay focused."
-        label.font = .italicSystemFont(ofSize: 15)
-        label.textColor = AppTheme.secondaryText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+        let l = UILabel()
+        l.text = "That's all for today. Stay focused."
+        l.font = .italicSystemFont(ofSize: 15)
+        l.textAlignment = .center
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
     }()
-    
-    private let reflectButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Add New Focus", for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        button.backgroundColor = AppTheme.elevatedBackground
-        button.layer.borderWidth = 1
-        button.layer.cornerRadius = 22
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        if let img = UIImage(systemName: "pencil", withConfiguration: config)?.withRenderingMode(.alwaysTemplate) {
-            button.setImage(img, for: .normal)
-            button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
-            button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
-        }
-        
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+
+    /// Pill button: blue circle "+" icon + "Add New Focus" text, matching the Stitch design.
+    private let addButton: UIButton = {
+        let b = UIButton(type: .custom)
+        b.setTitle("Add New Focus", for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        b.layer.cornerRadius = 26
+        b.layer.cornerCurve = .continuous
+        b.layer.borderWidth = 1
+        b.translatesAutoresizingMaskIntoConstraints = false
+
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+        let icon = UIImage(systemName: "plus.circle.fill", withConfiguration: iconCfg)
+        b.setImage(icon, for: .normal)
+
+        // Space between icon and text
+        b.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 10)
+        b.titleEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 0)
+        return b
     }()
-    
+
+    // MARK: - Callbacks
+
     var onReflectButtonTapped: (() -> Void)?
 
-    private var reflectBelowMessage: NSLayoutConstraint!
-    private var reflectBelowTop: NSLayoutConstraint!
-    private var reflectHeightConstraint: NSLayoutConstraint!
+    // MARK: - Constraints toggled by state
 
-    // MARK: - Initialization
+    private var addBelowMessage: NSLayoutConstraint!
+    private var addBelowTop: NSLayoutConstraint!
+    private var addHeightConstraint: NSLayoutConstraint!
+
+    // MARK: - Init
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupUI() {
         backgroundColor = .clear
-        
+
         addSubview(messageLabel)
-        addSubview(reflectButton)
-        
-        reflectButton.addTarget(self, action: #selector(reflectButtonTapped), for: .touchUpInside)
+        addSubview(addButton)
+
+        addButton.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
         applyChrome()
 
-        reflectBelowMessage = reflectButton.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 16)
-        reflectBelowTop = reflectButton.topAnchor.constraint(equalTo: topAnchor, constant: 6)
-        reflectHeightConstraint = reflectButton.heightAnchor.constraint(equalToConstant: 44)
+        addBelowMessage = addButton.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 16)
+        addBelowTop = addButton.topAnchor.constraint(equalTo: topAnchor, constant: 8)
+        addHeightConstraint = addButton.heightAnchor.constraint(equalToConstant: 52)
 
         NSLayoutConstraint.activate([
             messageLabel.topAnchor.constraint(equalTo: topAnchor, constant: 12),
             messageLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
             messageLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
 
-            reflectButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            reflectButton.widthAnchor.constraint(equalToConstant: 220),
-            reflectHeightConstraint,
-            reflectButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
-            reflectBelowMessage
+            addButton.centerXAnchor.constraint(equalTo: centerXAnchor),
+            addButton.widthAnchor.constraint(equalToConstant: 230),
+            addHeightConstraint,
+            addButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            addBelowMessage,
         ])
     }
-    
-    @objc private func reflectButtonTapped() {
-        onReflectButtonTapped?()
-    }
-    
-    func updateMessage(isEmpty: Bool) {
-        messageLabel.isHidden = isEmpty
-        reflectBelowMessage.isActive = !isEmpty
-        reflectBelowTop.isActive = isEmpty
-        if isEmpty {
-            messageLabel.text = ""
-        } else {
-            messageLabel.text = "That's all for today. Stay focused."
-        }
-    }
 
-    /// Show or hide the pencil Add button. Hidden when 0 tasks (empty state covers it)
-    /// or when the daily limit of 3 is reached.
-    func setAddButtonVisible(_ visible: Bool) {
-        reflectButton.isHidden = !visible
-        reflectHeightConstraint.constant = visible ? 44 : 0
-    }
-    
     private func applyChrome() {
         messageLabel.textColor = AppTheme.secondaryText
-        reflectButton.setTitleColor(AppTheme.primaryText, for: .normal)
-        reflectButton.tintColor = AppTheme.primaryText
-        reflectButton.backgroundColor = AppTheme.elevatedBackground
-        reflectButton.layer.borderColor = AppTheme.border.resolvedColor(with: traitCollection).cgColor
+
+        addButton.backgroundColor = AppTheme.cardBackground
+        addButton.setTitleColor(AppTheme.primaryText, for: .normal)
+        // Icon gets accent color (blue circle); title color is set above
+        addButton.tintColor = AppTheme.accent
+        addButton.layer.borderColor = AppTheme.border.resolvedColor(with: traitCollection).withAlphaComponent(0.25).cgColor
     }
-    
+
+    // MARK: - Public API (same interface as before)
+
+    func updateMessage(isEmpty: Bool) {
+        messageLabel.isHidden = isEmpty
+        addBelowMessage.isActive = !isEmpty
+        addBelowTop.isActive = isEmpty
+        messageLabel.text = isEmpty ? "" : "That's all for today. Stay focused."
+    }
+
+    func setAddButtonVisible(_ visible: Bool) {
+        addButton.isHidden = !visible
+        addHeightConstraint.constant = visible ? 52 : 0
+    }
+
+    @objc private func addTapped() {
+        onReflectButtonTapped?()
+    }
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         applyChrome()
     }
 }
-
