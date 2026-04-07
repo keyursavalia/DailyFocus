@@ -19,7 +19,7 @@ class TaskViewModel {
     func loadTasks() {
         tasksByDay = persistenceManager.loadTasksByDay()
         displayedDayKey = DayKey.string(for: Date())
-        tasks = tasksByDay[displayedDayKey] ?? []
+        tasks = Self.sorted(tasksByDay[displayedDayKey] ?? [])
     }
 
     /// Call when the app may have crossed midnight or when returning to the main screen.
@@ -27,7 +27,7 @@ class TaskViewModel {
         let todayKey = DayKey.string(for: Date())
         tasksByDay = persistenceManager.loadTasksByDay()
         displayedDayKey = todayKey
-        tasks = tasksByDay[displayedDayKey] ?? []
+        tasks = Self.sorted(tasksByDay[displayedDayKey] ?? [])
     }
 
     func addTask(title: String, priority: TaskPriority = .medium) -> Result<Void, TaskError> {
@@ -62,6 +62,7 @@ class TaskViewModel {
             endDate: payload.endDate
         )
         tasks.append(newTask)
+        tasks = Self.sorted(tasks)
         saveTasks()
         return .success(())
     }
@@ -107,5 +108,11 @@ class TaskViewModel {
     private func saveTasks() {
         tasksByDay[displayedDayKey] = tasks
         persistenceManager.saveTasksByDay(tasksByDay)
+    }
+
+    /// Stable sort: high → medium → low, preserving relative order within each priority.
+    private static func sorted(_ tasks: [FocusTask]) -> [FocusTask] {
+        let order: [TaskPriority: Int] = [.high: 0, .medium: 1, .low: 2]
+        return tasks.sorted { order[$0.priority, default: 1] < order[$1.priority, default: 1] }
     }
 }
