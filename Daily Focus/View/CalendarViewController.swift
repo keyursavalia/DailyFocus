@@ -4,19 +4,33 @@ import UIKit
 final class CalendarViewController: UIViewController {
 
     private let monthCalendarView = MonthCalendarView()
-    private let dayPanel = UIView()
-    private let dayTitleLabel = UILabel()
+
+    // Panel header
+    private let panelHeaderRow = UIView()
+    private let focusTitleLabel = UILabel()
+    private let itemsBadgeView = UIView()
+    private let itemsBadgeLabel = UILabel()
+
     private let tableView = UITableView(frame: .zero, style: .plain)
 
-    private let bottomBar = UIStackView()
-    private let quickAddButton = UIButton(type: .system)
-    private let addFAB = UIButton(type: .system)
+    // Floating add button
+    private let fabButton: UIButton = {
+        let b = UIButton(type: .system)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        b.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
+        b.layer.cornerRadius = 25
+        b.layer.cornerCurve = .continuous
+        b.translatesAutoresizingMaskIntoConstraints = false
+        return b
+    }()
 
     private let sideToolsDrawer = SideToolsDrawerView()
 
     private var tasksByDay: [String: [FocusTask]] = [:]
     private var selectedDayKey: String = DayKey.string(for: Date())
-    private var displayedMonth: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
+    private var displayedMonth: Date = Calendar.current.date(
+        from: Calendar.current.dateComponents([.year, .month], from: Date())
+    ) ?? Date()
 
     private let persistence = PersistenceManager.shared
     private let cal = Calendar.current
@@ -25,15 +39,17 @@ final class CalendarViewController: UIViewController {
         (tasksByDay[selectedDayKey] ?? []).sorted { $0.startDate < $1.startDate }
     }
 
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = AppTheme.calendarGridBackground
+        view.backgroundColor = AppTheme.background
         navigationController?.setNavigationBarHidden(true, animated: false)
 
         configureMonthCalendar()
-        configureDayPanel()
+        configurePanelHeader()
         configureTable()
-        configureBottomBar()
+        configureFAB()
         configureSideDrawer()
         layoutViews()
 
@@ -47,9 +63,7 @@ final class CalendarViewController: UIViewController {
         )
     }
 
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
+    deinit { NotificationCenter.default.removeObserver(self) }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -57,36 +71,55 @@ final class CalendarViewController: UIViewController {
     }
 
     @objc private func onSignificantTimeChange() {
-        let todayKey = DayKey.string(for: Date())
-        selectedDayKey = todayKey
+        selectedDayKey = DayKey.string(for: Date())
         displayedMonth = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? displayedMonth
         syncMonthViewState()
         reloadFromDisk()
     }
 
+    // MARK: - Configuration
+
     private func configureMonthCalendar() {
         monthCalendarView.displayedMonth = displayedMonth
         monthCalendarView.selectedDayKey = selectedDayKey
-        monthCalendarView.onDaySelected = { [weak self] key in
-            self?.applySelectedDayKey(key)
-        }
-        monthCalendarView.onPrevMonth = { [weak self] in
-            self?.shiftMonth(-1)
-        }
-        monthCalendarView.onNextMonth = { [weak self] in
-            self?.shiftMonth(1)
-        }
+        monthCalendarView.onDaySelected = { [weak self] key in self?.applySelectedDayKey(key) }
+        monthCalendarView.onPrevMonth = { [weak self] in self?.shiftMonth(-1) }
+        monthCalendarView.onNextMonth = { [weak self] in self?.shiftMonth(1) }
     }
 
-    private func configureDayPanel() {
-        dayPanel.backgroundColor = AppTheme.calendarPanelBackground
-        dayPanel.translatesAutoresizingMaskIntoConstraints = false
+    private func configurePanelHeader() {
+        panelHeaderRow.translatesAutoresizingMaskIntoConstraints = false
 
-        dayTitleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
-        dayTitleLabel.textColor = AppTheme.primaryText
-        dayTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        focusTitleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
+        focusTitleLabel.textColor = AppTheme.primaryText
+        focusTitleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        updateDayTitle()
+        itemsBadgeView.layer.cornerRadius = 12
+        itemsBadgeView.layer.cornerCurve = .continuous
+        itemsBadgeView.backgroundColor = AppTheme.cardBackground
+        itemsBadgeView.translatesAutoresizingMaskIntoConstraints = false
+
+        itemsBadgeLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        itemsBadgeLabel.textColor = AppTheme.secondaryText
+        itemsBadgeLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        itemsBadgeView.addSubview(itemsBadgeLabel)
+        panelHeaderRow.addSubview(focusTitleLabel)
+        panelHeaderRow.addSubview(itemsBadgeView)
+
+        NSLayoutConstraint.activate([
+            itemsBadgeLabel.topAnchor.constraint(equalTo: itemsBadgeView.topAnchor, constant: 5),
+            itemsBadgeLabel.bottomAnchor.constraint(equalTo: itemsBadgeView.bottomAnchor, constant: -5),
+            itemsBadgeLabel.leadingAnchor.constraint(equalTo: itemsBadgeView.leadingAnchor, constant: 10),
+            itemsBadgeLabel.trailingAnchor.constraint(equalTo: itemsBadgeView.trailingAnchor, constant: -10),
+
+            focusTitleLabel.centerYAnchor.constraint(equalTo: panelHeaderRow.centerYAnchor),
+            focusTitleLabel.leadingAnchor.constraint(equalTo: panelHeaderRow.leadingAnchor, constant: 16),
+            focusTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: itemsBadgeView.leadingAnchor, constant: -8),
+
+            itemsBadgeView.centerYAnchor.constraint(equalTo: panelHeaderRow.centerYAnchor),
+            itemsBadgeView.trailingAnchor.constraint(equalTo: panelHeaderRow.trailingAnchor, constant: -16),
+        ])
     }
 
     private func configureTable() {
@@ -94,44 +127,17 @@ final class CalendarViewController: UIViewController {
         tableView.separatorStyle = .none
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.isScrollEnabled = false
         tableView.register(CalendarEventCell.self, forCellReuseIdentifier: CalendarEventCell.identifier)
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.keyboardDismissMode = .onDrag
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 80
     }
 
-    private func configureBottomBar() {
-        bottomBar.axis = .horizontal
-        bottomBar.spacing = 12
-        bottomBar.alignment = .center
-        bottomBar.translatesAutoresizingMaskIntoConstraints = false
-
-        quickAddButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        quickAddButton.setTitleColor(AppTheme.secondaryText, for: .normal)
-        quickAddButton.backgroundColor = AppTheme.cardBackground
-        quickAddButton.layer.cornerRadius = 22
-        quickAddButton.layer.cornerCurve = .continuous
-        quickAddButton.contentHorizontalAlignment = .leading
-        quickAddButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
-        quickAddButton.addAction(UIAction { [weak self] _ in self?.presentAddTask() }, for: .touchUpInside)
-
-        let addIcon = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
-        addFAB.setImage(UIImage(systemName: "plus", withConfiguration: addIcon), for: .normal)
-        addFAB.tintColor = AppTheme.primaryText
-        addFAB.backgroundColor = AppTheme.cardBackground
-        addFAB.layer.cornerRadius = 22
-        addFAB.layer.cornerCurve = .continuous
-        addFAB.addAction(UIAction { [weak self] _ in self?.presentAddTask() }, for: .touchUpInside)
-        addFAB.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            addFAB.widthAnchor.constraint(equalToConstant: 44),
-            addFAB.heightAnchor.constraint(equalToConstant: 44)
-        ])
-
-        bottomBar.addArrangedSubview(quickAddButton)
-        bottomBar.addArrangedSubview(addFAB)
-        quickAddButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
-
-        updateQuickAddTitle()
+    private func configureFAB() {
+        fabButton.tintColor = .white
+        fabButton.backgroundColor = AppTheme.accent
+        fabButton.addAction(UIAction { [weak self] _ in self?.presentAddTask() }, for: .touchUpInside)
     }
 
     private func configureSideDrawer() {
@@ -152,46 +158,41 @@ final class CalendarViewController: UIViewController {
             sideToolsDrawer.topAnchor.constraint(equalTo: view.topAnchor),
             sideToolsDrawer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             sideToolsDrawer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            sideToolsDrawer.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            sideToolsDrawer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
     private func layoutViews() {
         view.addSubview(monthCalendarView)
-        view.addSubview(dayPanel)
-        dayPanel.addSubview(dayTitleLabel)
-        dayPanel.addSubview(tableView)
-        view.addSubview(bottomBar)
-
-        monthCalendarView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(panelHeaderRow)
+        view.addSubview(tableView)
+        view.addSubview(fabButton)
 
         NSLayoutConstraint.activate([
-            monthCalendarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            monthCalendarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            monthCalendarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            monthCalendarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
+            monthCalendarView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            monthCalendarView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            dayPanel.topAnchor.constraint(equalTo: monthCalendarView.bottomAnchor, constant: 0),
-            dayPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            dayPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            dayPanel.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -8),
+            panelHeaderRow.topAnchor.constraint(equalTo: monthCalendarView.bottomAnchor, constant: 18),
+            panelHeaderRow.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            panelHeaderRow.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            panelHeaderRow.heightAnchor.constraint(equalToConstant: 44),
 
-            dayTitleLabel.topAnchor.constraint(equalTo: dayPanel.safeAreaLayoutGuide.topAnchor, constant: 8),
-            dayTitleLabel.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor, constant: 20),
-            dayTitleLabel.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor, constant: -20),
+            tableView.topAnchor.constraint(equalTo: panelHeaderRow.bottomAnchor, constant: 6),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            tableView.topAnchor.constraint(equalTo: dayTitleLabel.bottomAnchor, constant: 8),
-            tableView.leadingAnchor.constraint(equalTo: dayPanel.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: dayPanel.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: dayPanel.bottomAnchor),
-
-            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            bottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-            quickAddButton.heightAnchor.constraint(equalToConstant: 44)
+            fabButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            fabButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -14),
+            fabButton.widthAnchor.constraint(equalToConstant: 50),
+            fabButton.heightAnchor.constraint(equalToConstant: 50),
         ])
 
         view.bringSubviewToFront(sideToolsDrawer)
     }
+
+    // MARK: - State
 
     private func applySelectedDayKey(_ key: String) {
         selectedDayKey = key
@@ -205,25 +206,19 @@ final class CalendarViewController: UIViewController {
             }
         }
         syncMonthViewState()
-        updateDayTitle()
-        updateQuickAddTitle()
+        updatePanelHeader()
         tableView.reloadData()
-    }
-
-    private func firstOfMonth(_ date: Date) -> Date {
-        cal.date(from: cal.dateComponents([.year, .month], from: date)) ?? date
     }
 
     private func shiftMonth(_ delta: Int) {
         guard
-            let nextMonth = cal.date(byAdding: .month, value: delta, to: firstOfMonth(displayedMonth)),
-            let first = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth))
+            let next = cal.date(byAdding: .month, value: delta, to: firstOfMonth(displayedMonth)),
+            let first = cal.date(from: cal.dateComponents([.year, .month], from: next))
         else { return }
         displayedMonth = first
         selectedDayKey = DayKey.string(for: first)
         syncMonthViewState()
-        updateDayTitle()
-        updateQuickAddTitle()
+        updatePanelHeader()
         tableView.reloadData()
     }
 
@@ -233,22 +228,23 @@ final class CalendarViewController: UIViewController {
         monthCalendarView.selectedDayKey = selectedDayKey
     }
 
-    private func updateDayTitle() {
+    private func updatePanelHeader() {
         guard let d = DayKey.date(from: selectedDayKey) else { return }
         let df = DateFormatter()
         df.locale = Locale.current
-        df.dateFormat = "MMMM d · EEE"
-        dayTitleLabel.text = df.string(from: d)
+        df.dateFormat = "MMMM d"
+        focusTitleLabel.text = "Focus for \(df.string(from: d))"
+
+        let count = displayedTasks.count
+        itemsBadgeLabel.text = "\(count) ITEM\(count == 1 ? "" : "S")"
+        fabButton.isHidden = count >= 3
     }
 
-    private func updateQuickAddTitle() {
-        guard let d = DayKey.date(from: selectedDayKey) else { return }
-        let df = DateFormatter()
-        df.locale = Locale.current
-        df.dateFormat = "MMM d"
-        let suffix = df.string(from: d)
-        quickAddButton.setTitle("Add event on \(suffix)", for: .normal)
+    private func firstOfMonth(_ date: Date) -> Date {
+        cal.date(from: cal.dateComponents([.year, .month], from: date)) ?? date
     }
+
+    // MARK: - Data
 
     private func reloadFromDisk() {
         tasksByDay = persistence.loadTasksByDay()
@@ -256,22 +252,19 @@ final class CalendarViewController: UIViewController {
         let todayOnly = tasksByDay[todayKey] ?? []
         sideToolsDrawer.updateResetButtonVisibility(hasTasks: !todayOnly.isEmpty)
         syncMonthViewState()
-        updateDayTitle()
-        updateQuickAddTitle()
+        updatePanelHeader()
         tableView.reloadData()
     }
+
+    // MARK: - Task actions
 
     private func presentDetail(for task: FocusTask) {
         let key = selectedDayKey
         let detail = TaskCalendarDetailViewController(
             dayKey: key,
             task: task,
-            onSave: { [weak self] updated in
-                self?.replaceTask(updated, dayKey: key)
-            },
-            onDelete: { [weak self] in
-                self?.deleteTask(task, dayKey: key)
-            }
+            onSave: { [weak self] updated in self?.replaceTask(updated, dayKey: key) },
+            onDelete: { [weak self] in self?.deleteTask(task, dayKey: key) }
         )
         let nav = UINavigationController(rootViewController: detail)
         nav.modalPresentationStyle = .pageSheet
@@ -285,11 +278,19 @@ final class CalendarViewController: UIViewController {
     private func replaceTask(_ task: FocusTask, dayKey: String) {
         var map = persistence.loadTasksByDay()
         guard var list = map[dayKey], let i = list.firstIndex(where: { $0.id == task.id }) else {
-            reloadFromDisk()
-            return
+            reloadFromDisk(); return
         }
         list[i] = task
         map[dayKey] = list
+        persistence.saveTasksByDay(map)
+        reloadFromDisk()
+    }
+
+    private func toggleCompletion(for task: FocusTask) {
+        var map = persistence.loadTasksByDay()
+        guard var list = map[selectedDayKey], let i = list.firstIndex(where: { $0.id == task.id }) else { return }
+        list[i].isCompleted.toggle()
+        map[selectedDayKey] = list
         persistence.saveTasksByDay(map)
         reloadFromDisk()
     }
@@ -309,27 +310,21 @@ final class CalendarViewController: UIViewController {
             showErrorAlert(error: .limitReached)
             return
         }
-
         guard let dayDate = DayKey.date(from: selectedDayKey) else { return }
-        let addTaskSheet = AddTaskSheetView(referenceDay: dayDate)
-        addTaskSheet.onSave = { [weak self] payload in
+        let sheet = AddTaskSheetView(referenceDay: dayDate)
+        sheet.onSave = { [weak self] payload in
             guard let self else { return }
-            addTaskSheet.dismiss()
+            sheet.dismiss()
             self.addTask(payload: payload, dayKey: self.selectedDayKey)
         }
-        addTaskSheet.onCancelTapped = {
-            addTaskSheet.dismiss()
-        }
-        addTaskSheet.show(in: view)
+        sheet.onCancelTapped = { sheet.dismiss() }
+        sheet.show(in: view)
     }
 
     private func addTask(payload: TaskFormPayload, dayKey: String) {
         var map = persistence.loadTasksByDay()
         var list = map[dayKey] ?? []
-        guard list.count < 3 else {
-            showErrorAlert(error: .limitReached)
-            return
-        }
+        guard list.count < 3 else { showErrorAlert(error: .limitReached); return }
         let task = FocusTask(
             title: payload.title.trimmingCharacters(in: .whitespaces),
             isCompleted: false,
@@ -355,7 +350,7 @@ final class CalendarViewController: UIViewController {
 
     private func showResetConfirmation() {
         let alert = UIAlertController(
-            title: "Reset Today’s Tasks",
+            title: "Reset Today's Tasks",
             message: "This removes every focus task scheduled for today only. Tasks on other days are kept.",
             preferredStyle: .alert
         )
@@ -363,14 +358,15 @@ final class CalendarViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Reset", style: .destructive) { [weak self] _ in
             guard let self else { return }
             var map = self.persistence.loadTasksByDay()
-            let todayKey = DayKey.string(for: Date())
-            map[todayKey] = []
+            map[DayKey.string(for: Date())] = []
             self.persistence.saveTasksByDay(map)
             self.reloadFromDisk()
         })
         present(alert, animated: true)
     }
 }
+
+// MARK: - UITableViewDataSource / Delegate
 
 extension CalendarViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -383,16 +379,20 @@ extension CalendarViewController: UITableViewDataSource, UITableViewDelegate {
             cell.backgroundColor = .clear
             cell.textLabel?.text = "No tasks"
             cell.textLabel?.textColor = AppTheme.secondaryText
-            cell.textLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-            cell.detailTextLabel?.text = "Add a focus task for this day using the bar below."
+            cell.textLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+            cell.detailTextLabel?.text = "Tap + to add a focus task for this day."
             cell.detailTextLabel?.textColor = AppTheme.tertiaryText
             cell.detailTextLabel?.numberOfLines = 0
             cell.selectionStyle = .none
             return cell
         }
 
+        let task = displayedTasks[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: CalendarEventCell.identifier, for: indexPath) as! CalendarEventCell
-        cell.configure(with: displayedTasks[indexPath.row])
+        cell.configure(with: task)
+        cell.onCompletionTapped = { [weak self] in
+            self?.toggleCompletion(for: task)
+        }
         return cell
     }
 
