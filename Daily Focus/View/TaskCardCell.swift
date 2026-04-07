@@ -7,7 +7,7 @@ class TaskCardCell: UITableViewCell {
     private let cardView: UIView = {
         let view = UIView()
         view.backgroundColor = AppTheme.cardBackground
-        view.layer.cornerRadius = 16
+        view.layer.cornerRadius = 18
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -166,6 +166,14 @@ class TaskCardCell: UITableViewCell {
         carriedOverTag.isHidden = !task.isCarriedOver
         
         // Configure checkmark
+        if task.isCompleted {
+            cardView.alpha = 0.55
+            cardView.backgroundColor = AppTheme.cardBackground.withAlphaComponent(0.9)
+        } else {
+            cardView.alpha = 1.0
+            cardView.backgroundColor = AppTheme.cardBackground
+        }
+
         if task.isCompleted {
             checkmarkButton.backgroundColor = accent
             checkmarkButton.layer.borderColor = accent.resolvedColor(with: traitCollection).cgColor
