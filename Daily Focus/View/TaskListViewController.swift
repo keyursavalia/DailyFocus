@@ -5,6 +5,7 @@ class TaskListViewController: UIViewController {
 
     private let tableView = UITableView()
     private let headerView = TaskListHeaderView()
+    private var headerHeightConstraint: NSLayoutConstraint!
     private let footerView = TaskListFooterView()
     private let emptyStateView = EmptyStateView()
     private let sideToolsDrawer = SideToolsDrawerView()
@@ -100,11 +101,12 @@ class TaskListViewController: UIViewController {
 
     private func configureHeader() {
         headerView.translatesAutoresizingMaskIntoConstraints = false
+        headerHeightConstraint = headerView.heightAnchor.constraint(equalToConstant: 100)
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: 100)
+            headerHeightConstraint
         ])
     }
 
@@ -189,6 +191,8 @@ class TaskListViewController: UIViewController {
 
         emptyStateView.isHidden = !isEmpty
         tableView.isHidden = isEmpty
+        headerView.isHidden = isEmpty
+        headerHeightConstraint.constant = isEmpty ? 0 : 100
         headerView.updateProgress(completed: completed, total: total)
         sideToolsDrawer.updateResetButtonVisibility(hasTasks: !isEmpty)
         footerView.updateMessage(isEmpty: isEmpty)
