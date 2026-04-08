@@ -6,25 +6,46 @@ final class TaskFormView: UIView {
     private let referenceDay: Date
     private let cal = Calendar.current
 
-    private let titleField: UITextField = {
-        let field = UITextField()
-        field.font = .systemFont(ofSize: 17, weight: .regular)
-        field.textColor = AppTheme.primaryText
-        field.backgroundColor = AppTheme.fieldBackground
-        field.layer.cornerRadius = 12
-        field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        field.leftViewMode = .always
-        field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        field.rightViewMode = .always
-        field.translatesAutoresizingMaskIntoConstraints = false
-        return field
+    // MARK: - Section labels
+
+    private let focusSectionLabel: UILabel = {
+        let l = UILabel()
+        l.text = "WHAT IS YOUR FOCUS?"
+        l.font = .systemFont(ofSize: 11, weight: .semibold)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
     }()
+
+    private let prioritySectionLabel: UILabel = {
+        let l = UILabel()
+        l.text = "PRIORITY LEVEL"
+        l.font = .systemFont(ofSize: 11, weight: .semibold)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    // MARK: - Title field
+
+    private let titleField: UITextField = {
+        let f = UITextField()
+        f.font = .systemFont(ofSize: 17, weight: .regular)
+        f.layer.cornerRadius = 12
+        f.layer.cornerCurve = .continuous
+        f.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        f.leftViewMode = .always
+        f.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        f.rightViewMode = .always
+        f.translatesAutoresizingMaskIntoConstraints = false
+        return f
+    }()
+
+    // MARK: - Priority
 
     private let priorityStack: UIStackView = {
         let s = UIStackView()
         s.axis = .horizontal
         s.distribution = .fillEqually
-        s.spacing = 12
+        s.spacing = 10
         s.translatesAutoresizingMaskIntoConstraints = false
         return s
     }()
@@ -32,28 +53,38 @@ final class TaskFormView: UIView {
     private var priorityButtons: [UIButton] = []
     private var selectedPriority: TaskPriority = .medium
 
+    // MARK: - All Day row
+
     private let allDayRow = UIView()
-    private let allDayIcon = UIImageView()
-    private let allDayLabel = UILabel()
+
+    private let allDayTitleLabel: UILabel = {
+        let l = UILabel()
+        l.text = "All Day"
+        l.font = .systemFont(ofSize: 16, weight: .medium)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let allDaySubtitleLabel: UILabel = {
+        let l = UILabel()
+        l.text = "Set as a persistent daily goal"
+        l.font = .systemFont(ofSize: 12, weight: .regular)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
     private let allDaySwitch = UISwitch()
+
+    // MARK: - Timing
 
     private let timingContainer = UIView()
 
-    /// Split date / time so compact controls stay readable full-width without inline month grids.
     private let startDayPicker = UIDatePicker()
     private let startTimePicker = UIDatePicker()
     private let endDayPicker = UIDatePicker()
     private let endTimePicker = UIDatePicker()
 
-    /// Full-width vertical stack: Starts → date + time, Ends → date + time.
-    private let timingStack: UIStackView = {
-        let s = UIStackView()
-        s.axis = .vertical
-        s.spacing = 12
-        s.alignment = .fill
-        s.translatesAutoresizingMaskIntoConstraints = false
-        return s
-    }()
+    // MARK: - Init
 
     init(referenceDay: Date) {
         self.referenceDay = cal.startOfDay(for: referenceDay)
@@ -67,19 +98,20 @@ final class TaskFormView: UIView {
         setDefaultTimes()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: - Setup
 
     private func setupPriorityButtons() {
-        let items: [(String, TaskPriority)] = [("High", .high), ("Medium", .medium), ("Low", .low)]
+        // Order: Low | Medium | High  (matching reference design)
+        let items: [(String, TaskPriority)] = [("Low", .low), ("Medium", .medium), ("High", .high)]
         for (title, p) in items {
             let b = UIButton(type: .system)
             b.setTitle(title, for: .normal)
-            b.setTitleColor(.white, for: .normal)
-            b.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+            b.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
             b.layer.cornerRadius = 10
-            b.tag = items.firstIndex(where: { $0.1 == p }) ?? 0
+            b.layer.cornerCurve = .continuous
+            b.layer.borderWidth = 0
             b.addAction(UIAction { [weak self] _ in self?.selectPriority(p) }, for: .touchUpInside)
             priorityButtons.append(b)
             priorityStack.addArrangedSubview(b)
@@ -89,37 +121,27 @@ final class TaskFormView: UIView {
 
     private func setupAllDayRow() {
         allDayRow.translatesAutoresizingMaskIntoConstraints = false
-        allDayIcon.image = UIImage(systemName: "clock")
-        allDayIcon.tintColor = AppTheme.primaryText
-        allDayIcon.translatesAutoresizingMaskIntoConstraints = false
-        allDayIcon.contentMode = .scaleAspectFit
 
-        allDayLabel.text = "All day"
-        allDayLabel.font = .systemFont(ofSize: 17, weight: .regular)
-        allDayLabel.textColor = AppTheme.primaryText
-        allDayLabel.translatesAutoresizingMaskIntoConstraints = false
+        let textStack = UIStackView(arrangedSubviews: [allDayTitleLabel, allDaySubtitleLabel])
+        textStack.axis = .vertical
+        textStack.spacing = 2
+        textStack.alignment = .leading
+        textStack.translatesAutoresizingMaskIntoConstraints = false
 
         allDaySwitch.translatesAutoresizingMaskIntoConstraints = false
         allDaySwitch.addAction(UIAction { [weak self] _ in self?.allDayChanged() }, for: .valueChanged)
 
-        allDayRow.addSubview(allDayIcon)
-        allDayRow.addSubview(allDayLabel)
+        allDayRow.addSubview(textStack)
         allDayRow.addSubview(allDaySwitch)
 
         NSLayoutConstraint.activate([
-            allDayIcon.leadingAnchor.constraint(equalTo: allDayRow.leadingAnchor),
-            allDayIcon.centerYAnchor.constraint(equalTo: allDayRow.centerYAnchor),
-            allDayIcon.widthAnchor.constraint(equalToConstant: 22),
-            allDayIcon.heightAnchor.constraint(equalToConstant: 22),
-
-            allDayLabel.leadingAnchor.constraint(equalTo: allDayIcon.trailingAnchor, constant: 12),
-            allDayLabel.centerYAnchor.constraint(equalTo: allDayRow.centerYAnchor),
+            textStack.leadingAnchor.constraint(equalTo: allDayRow.leadingAnchor),
+            textStack.topAnchor.constraint(equalTo: allDayRow.topAnchor),
+            textStack.bottomAnchor.constraint(equalTo: allDayRow.bottomAnchor),
+            textStack.trailingAnchor.constraint(lessThanOrEqualTo: allDaySwitch.leadingAnchor, constant: -12),
 
             allDaySwitch.trailingAnchor.constraint(equalTo: allDayRow.trailingAnchor),
             allDaySwitch.centerYAnchor.constraint(equalTo: allDayRow.centerYAnchor),
-            allDaySwitch.leadingAnchor.constraint(greaterThanOrEqualTo: allDayLabel.trailingAnchor, constant: 12),
-
-            allDayRow.heightAnchor.constraint(equalToConstant: 36)
         ])
     }
 
@@ -134,131 +156,134 @@ final class TaskFormView: UIView {
         startTimePicker.datePickerMode = .time
         endDayPicker.datePickerMode = .date
         endTimePicker.datePickerMode = .time
+
         startDayPicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
         startTimePicker.addAction(UIAction { [weak self] _ in self?.startInputsChanged() }, for: .valueChanged)
         endDayPicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
         endTimePicker.addAction(UIAction { [weak self] _ in self?.endInputsChanged() }, for: .valueChanged)
 
-        let combinedCard = makeTimingCard()
-        timingStack.addArrangedSubview(combinedCard)
+        let startColumn = makeTimeColumn(label: "START TIME", dayPicker: startDayPicker, timePicker: startTimePicker)
+        let endColumn = makeTimeColumn(label: "END TIME", dayPicker: endDayPicker, timePicker: endTimePicker)
 
-        timingContainer.addSubview(timingStack)
+        let columnsStack = UIStackView(arrangedSubviews: [startColumn, endColumn])
+        columnsStack.axis = .horizontal
+        columnsStack.distribution = .fillEqually
+        columnsStack.spacing = 12
+        columnsStack.translatesAutoresizingMaskIntoConstraints = false
+
+        timingContainer.addSubview(columnsStack)
         NSLayoutConstraint.activate([
-            timingStack.topAnchor.constraint(equalTo: timingContainer.topAnchor),
-            timingStack.leadingAnchor.constraint(equalTo: timingContainer.leadingAnchor),
-            timingStack.trailingAnchor.constraint(equalTo: timingContainer.trailingAnchor),
-            timingStack.bottomAnchor.constraint(equalTo: timingContainer.bottomAnchor)
+            columnsStack.topAnchor.constraint(equalTo: timingContainer.topAnchor),
+            columnsStack.leadingAnchor.constraint(equalTo: timingContainer.leadingAnchor),
+            columnsStack.trailingAnchor.constraint(equalTo: timingContainer.trailingAnchor),
+            columnsStack.bottomAnchor.constraint(equalTo: timingContainer.bottomAnchor),
         ])
     }
 
-    private func makeTimingCard() -> UIView {
-        let card = UIView()
-        card.translatesAutoresizingMaskIntoConstraints = false
-        card.backgroundColor = AppTheme.fieldBackground
-        card.layer.cornerRadius = 12
+    private func makeTimeColumn(label text: String, dayPicker: UIDatePicker, timePicker: UIDatePicker) -> UIView {
+        let col = UIView()
+        col.translatesAutoresizingMaskIntoConstraints = false
 
-        let startSection = makePickerSection(caption: "STARTS", dayPicker: startDayPicker, timePicker: startTimePicker)
-        let divider = UIView()
-        divider.translatesAutoresizingMaskIntoConstraints = false
-        divider.backgroundColor = AppTheme.border
-        let endSection = makePickerSection(caption: "ENDS", dayPicker: endDayPicker, timePicker: endTimePicker)
+        let label = UILabel()
+        label.text = text
+        label.font = .systemFont(ofSize: 10, weight: .bold)
+        label.translatesAutoresizingMaskIntoConstraints = false
 
-        card.addSubview(startSection)
-        card.addSubview(divider)
-        card.addSubview(endSection)
+        let box = UIView()
+        box.layer.cornerRadius = 10
+        box.layer.cornerCurve = .continuous
+        box.backgroundColor = AppTheme.fieldBackground
+        box.translatesAutoresizingMaskIntoConstraints = false
+
+        let pickerStack = UIStackView(arrangedSubviews: [dayPicker, timePicker])
+        pickerStack.axis = .vertical
+        pickerStack.spacing = 4
+        pickerStack.alignment = .leading
+        pickerStack.translatesAutoresizingMaskIntoConstraints = false
+
+        box.addSubview(pickerStack)
+        col.addSubview(label)
+        col.addSubview(box)
 
         NSLayoutConstraint.activate([
-            startSection.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
-            startSection.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            startSection.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            label.topAnchor.constraint(equalTo: col.topAnchor),
+            label.leadingAnchor.constraint(equalTo: col.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: col.trailingAnchor),
 
-            divider.topAnchor.constraint(equalTo: startSection.bottomAnchor, constant: 10),
-            divider.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            divider.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
-            divider.heightAnchor.constraint(equalToConstant: 0.5),
+            box.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 6),
+            box.leadingAnchor.constraint(equalTo: col.leadingAnchor),
+            box.trailingAnchor.constraint(equalTo: col.trailingAnchor),
+            box.bottomAnchor.constraint(equalTo: col.bottomAnchor),
 
-            endSection.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 10),
-            endSection.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            endSection.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
-            endSection.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10)
+            pickerStack.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
+            pickerStack.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 12),
+            pickerStack.trailingAnchor.constraint(lessThanOrEqualTo: box.trailingAnchor, constant: -12),
+            pickerStack.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -12),
         ])
-        return card
-    }
 
-    private func makePickerSection(caption: String, dayPicker: UIDatePicker, timePicker: UIDatePicker) -> UIView {
-        let section = UIView()
-        section.translatesAutoresizingMaskIntoConstraints = false
-
-        let cap = UILabel()
-        cap.text = caption
-        cap.font = .systemFont(ofSize: 11, weight: .semibold)
-        cap.textColor = AppTheme.tertiaryText
-        cap.translatesAutoresizingMaskIntoConstraints = false
-
-        let row = UIStackView(arrangedSubviews: [dayPicker, timePicker])
-        row.axis = .horizontal
-        row.spacing = 8
-        row.distribution = .fillEqually
-        row.alignment = .center
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        section.addSubview(cap)
-        section.addSubview(row)
-        NSLayoutConstraint.activate([
-            cap.topAnchor.constraint(equalTo: section.topAnchor),
-            cap.leadingAnchor.constraint(equalTo: section.leadingAnchor),
-            cap.trailingAnchor.constraint(equalTo: section.trailingAnchor),
-
-            row.topAnchor.constraint(equalTo: cap.bottomAnchor, constant: 6),
-            row.leadingAnchor.constraint(equalTo: section.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: section.trailingAnchor),
-            row.bottomAnchor.constraint(equalTo: section.bottomAnchor)
-        ])
-        return section
+        return col
     }
 
     private func layoutForm() {
+        addSubview(focusSectionLabel)
         addSubview(titleField)
+        addSubview(prioritySectionLabel)
         addSubview(priorityStack)
         addSubview(allDayRow)
         addSubview(timingContainer)
 
         NSLayoutConstraint.activate([
-            titleField.topAnchor.constraint(equalTo: topAnchor),
+            focusSectionLabel.topAnchor.constraint(equalTo: topAnchor),
+            focusSectionLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            focusSectionLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            titleField.topAnchor.constraint(equalTo: focusSectionLabel.bottomAnchor, constant: 8),
             titleField.leadingAnchor.constraint(equalTo: leadingAnchor),
             titleField.trailingAnchor.constraint(equalTo: trailingAnchor),
-            titleField.heightAnchor.constraint(equalToConstant: 48),
+            titleField.heightAnchor.constraint(equalToConstant: 52),
 
-            priorityStack.topAnchor.constraint(equalTo: titleField.bottomAnchor, constant: 16),
+            prioritySectionLabel.topAnchor.constraint(equalTo: titleField.bottomAnchor, constant: 24),
+            prioritySectionLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            prioritySectionLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            priorityStack.topAnchor.constraint(equalTo: prioritySectionLabel.bottomAnchor, constant: 8),
             priorityStack.leadingAnchor.constraint(equalTo: leadingAnchor),
             priorityStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            priorityStack.heightAnchor.constraint(equalToConstant: 44),
+            priorityStack.heightAnchor.constraint(equalToConstant: 46),
 
-            allDayRow.topAnchor.constraint(equalTo: priorityStack.bottomAnchor, constant: 20),
+            allDayRow.topAnchor.constraint(equalTo: priorityStack.bottomAnchor, constant: 24),
             allDayRow.leadingAnchor.constraint(equalTo: leadingAnchor),
             allDayRow.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            timingContainer.topAnchor.constraint(equalTo: allDayRow.bottomAnchor, constant: 16),
+            timingContainer.topAnchor.constraint(equalTo: allDayRow.bottomAnchor, constant: 20),
             timingContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
             timingContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
-            timingContainer.bottomAnchor.constraint(equalTo: bottomAnchor)
+            timingContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 
     private func applyTheme() {
+        focusSectionLabel.textColor = AppTheme.accent
+        prioritySectionLabel.textColor = AppTheme.secondaryText
+        allDayTitleLabel.textColor = AppTheme.primaryText
+        allDaySubtitleLabel.textColor = AppTheme.secondaryText
+
         titleField.backgroundColor = AppTheme.fieldBackground
         titleField.textColor = AppTheme.primaryText
         titleField.attributedPlaceholder = NSAttributedString(
-            string: "Task name",
+            string: "Deep work on Project X...",
             attributes: [.foregroundColor: AppTheme.secondaryText]
         )
+
+        refreshPriorityButtonStyles()
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         applyTheme()
-        refreshPriorityButtonStyles()
     }
+
+    // MARK: - Priority
 
     private func selectPriority(_ p: TaskPriority) {
         selectedPriority = p
@@ -266,40 +291,51 @@ final class TaskFormView: UIView {
     }
 
     private func refreshPriorityButtonStyles() {
-        let items: [TaskPriority] = [.high, .medium, .low]
+        let priorities: [TaskPriority] = [.low, .medium, .high]
         for (idx, b) in priorityButtons.enumerated() {
-            let p = items[idx]
-            let on = p == selectedPriority
-            b.layer.borderWidth = on ? 2 : 0
-            b.layer.borderColor = (traitCollection.userInterfaceStyle == .dark ? UIColor.white : UIColor.label).cgColor
-            switch p {
-            case .high: b.backgroundColor = AppTheme.priorityHigh
-            case .medium: b.backgroundColor = AppTheme.priorityMedium
-            case .low: b.backgroundColor = AppTheme.priorityLow
+            let p = priorities[idx]
+            let selected = p == selectedPriority
+            b.backgroundColor = AppTheme.fieldBackground
+            if selected {
+                b.setTitleColor(AppTheme.accent, for: .normal)
+                b.layer.borderWidth = 1.5
+                b.layer.borderColor = AppTheme.accent.withAlphaComponent(0.5).cgColor
+            } else {
+                b.setTitleColor(AppTheme.secondaryText, for: .normal)
+                b.layer.borderWidth = 0
+                b.layer.borderColor = UIColor.clear.cgColor
             }
         }
     }
+
+    // MARK: - All Day
+
+    private func allDayChanged() {
+        let on = allDaySwitch.isOn
+        timingContainer.isHidden = on
+        if on { applyAllDayBounds() }
+    }
+
+    private func applyAllDayBounds() {
+        let sod = cal.startOfDay(for: referenceDay)
+        let eod = cal.date(byAdding: DateComponents(day: 1, second: -1), to: sod) ?? sod
+        applyStartToPickers(sod)
+        applyEndToPickers(eod)
+    }
+
+    // MARK: - Timing helpers
 
     private func combine(day daySource: Date, time timeSource: Date) -> Date {
         let dc = cal.dateComponents([.year, .month, .day], from: cal.startOfDay(for: daySource))
         let tc = cal.dateComponents([.hour, .minute, .second], from: timeSource)
         var merged = DateComponents()
-        merged.year = dc.year
-        merged.month = dc.month
-        merged.day = dc.day
-        merged.hour = tc.hour
-        merged.minute = tc.minute
-        merged.second = tc.second
+        merged.year = dc.year; merged.month = dc.month; merged.day = dc.day
+        merged.hour = tc.hour; merged.minute = tc.minute; merged.second = tc.second
         return cal.date(from: merged) ?? daySource
     }
 
-    private func combinedStart() -> Date {
-        combine(day: startDayPicker.date, time: startTimePicker.date)
-    }
-
-    private func combinedEnd() -> Date {
-        combine(day: endDayPicker.date, time: endTimePicker.date)
-    }
+    private func combinedStart() -> Date { combine(day: startDayPicker.date, time: startTimePicker.date) }
+    private func combinedEnd()   -> Date { combine(day: endDayPicker.date,   time: endTimePicker.date) }
 
     private func applyStartToPickers(_ date: Date) {
         startDayPicker.date = cal.startOfDay(for: date)
@@ -319,28 +355,12 @@ final class TaskFormView: UIView {
             applyEndToPickers(end)
         } else {
             var c = cal.dateComponents([.year, .month, .day], from: referenceDay)
-            c.hour = 10
-            c.minute = 0
+            c.hour = 9; c.minute = 0
             let start = cal.date(from: c) ?? referenceDay
-            let end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
+            let end = cal.date(byAdding: .hour, value: 2, to: start) ?? start
             applyStartToPickers(start)
             applyEndToPickers(end)
         }
-    }
-
-    private func allDayChanged() {
-        let on = allDaySwitch.isOn
-        timingContainer.isHidden = on
-        if on {
-            applyAllDayBounds()
-        }
-    }
-
-    private func applyAllDayBounds() {
-        let sod = cal.startOfDay(for: referenceDay)
-        let eod = cal.date(byAdding: DateComponents(day: 1, second: -1), to: sod) ?? sod
-        applyStartToPickers(sod)
-        applyEndToPickers(eod)
     }
 
     private func startInputsChanged() {
@@ -363,21 +383,17 @@ final class TaskFormView: UIView {
         }
     }
 
-    /// Prefill for editing or add context.
+    // MARK: - Public API
+
     func apply(task: FocusTask?) {
-        guard let task else {
-            setDefaultTimes()
-            return
-        }
+        guard let task else { setDefaultTimes(); return }
         titleField.text = task.title
         selectPriority(task.priority)
         allDaySwitch.isOn = task.isAllDay
         applyStartToPickers(task.startDate)
         applyEndToPickers(task.endDate)
         timingContainer.isHidden = task.isAllDay
-        if task.isAllDay {
-            applyAllDayBounds()
-        }
+        if task.isAllDay { applyAllDayBounds() }
     }
 
     func collectPayload() -> TaskFormPayload? {
@@ -390,10 +406,8 @@ final class TaskFormView: UIView {
             let sod = cal.startOfDay(for: referenceDay)
             start = sod
             end = cal.date(byAdding: DateComponents(day: 1, second: -1), to: sod) ?? sod
-        } else {
-            if end <= start {
-                end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
-            }
+        } else if end <= start {
+            end = cal.date(byAdding: .hour, value: 1, to: start) ?? start
         }
         return TaskFormPayload(title: raw, priority: selectedPriority, isAllDay: allDay, startDate: start, endDate: end)
     }
