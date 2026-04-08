@@ -373,6 +373,10 @@ private final class CalendarDayCell: UICollectionViewCell {
         linesSlotContainer.addSubview(linesStack)
 
         let pad = CalendarDayCell.innerPad
+        let slotHeight = linesSlotContainer.heightAnchor.constraint(equalToConstant: CalendarDayCell.linesSlotHeight)
+        slotHeight.priority = .required
+        let slotBottomMax = linesSlotContainer.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -2)
+        slotBottomMax.priority = .required
         NSLayoutConstraint.activate([
             selectionBg.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 2),
             selectionBg.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
@@ -385,11 +389,13 @@ private final class CalendarDayCell: UICollectionViewCell {
             linesSlotContainer.topAnchor.constraint(equalTo: selectionBg.bottomAnchor, constant: 3),
             linesSlotContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
             linesSlotContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -pad),
-            linesSlotContainer.heightAnchor.constraint(equalToConstant: CalendarDayCell.linesSlotHeight),
+            slotHeight,
+            slotBottomMax,
 
             linesStack.topAnchor.constraint(equalTo: linesSlotContainer.topAnchor),
             linesStack.leadingAnchor.constraint(equalTo: linesSlotContainer.leadingAnchor),
             linesStack.trailingAnchor.constraint(equalTo: linesSlotContainer.trailingAnchor),
+            linesStack.bottomAnchor.constraint(lessThanOrEqualTo: linesSlotContainer.bottomAnchor)
         ])
     }
 
