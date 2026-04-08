@@ -41,6 +41,12 @@ Daily Focus is a native iOS application that enforces a hard limit of three focu
   Task Detail</sub>
 </p>
 
+<br/>
+
+<p align="center">
+  <img src="SCREENS/08-confetti.gif" width="220" alt="Completion Confetti Animation" />
+</p>
+
 ---
 
 ## Features
@@ -160,13 +166,14 @@ Daily Focus/
 ├── Resources/
 │   └── Confetti.lottie            # DotLottie animation file
 │
-└── SCREENS/                       # App screenshots
+└── SCREENS/                       # App screenshots and animation preview
     ├── 01-onboarding.png
     ├── 02-add-task.png
     ├── 03-focus-dark.png
     ├── 04-focus-light.png
     ├── 05-task-detail.png
     ├── 06-calendar-light.png
+    └── 08-confetti.gif
     └── 07-calendar-dark.png
 ```
 
