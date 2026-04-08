@@ -2,91 +2,91 @@ import UIKit
 
 class AddTaskSheetView: UIView {
 
+    // MARK: - Subviews
+
     private let dimmedBackground: UIView = {
-        let view = UIView()
-        view.backgroundColor = AppTheme.dimmedOverlay
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
+        let v = UIView()
+        v.backgroundColor = AppTheme.dimmedOverlay
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
     }()
 
     private let cardView: UIView = {
-        let view = UIView()
-        view.backgroundColor = AppTheme.elevatedBackground
-        view.layer.cornerRadius = 20
-        view.clipsToBounds = true
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
+        let v = UIView()
+        v.layer.cornerRadius = 20
+        v.layer.cornerCurve = .continuous
+        v.clipsToBounds = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
     }()
 
+    // Header row (title + X button) – sits above the scroll view
+    private let headerRow: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let titleLabel: UILabel = {
+        let l = UILabel()
+        l.text = "New Focus"
+        l.font = .systemFont(ofSize: 24, weight: .bold)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let closeButton: UIButton = {
+        let b = UIButton(type: .system)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        b.setImage(UIImage(systemName: "xmark", withConfiguration: cfg), for: .normal)
+        b.translatesAutoresizingMaskIntoConstraints = false
+        return b
+    }()
+
+    // Scroll + form
     private let scrollView: UIScrollView = {
         let s = UIScrollView()
         s.translatesAutoresizingMaskIntoConstraints = false
         s.alwaysBounceVertical = true
         s.keyboardDismissMode = .interactive
-        // UIScrollView has no intrinsic height; without this, Auto Layout can compress
-        // the scroll area to 0 when the card is only vertically centered with max height.
         s.setContentCompressionResistancePriority(.required, for: .vertical)
         return s
     }()
 
-    private let contentStack: UIStackView = {
-        let s = UIStackView()
-        s.axis = .vertical
-        s.spacing = 16
-        s.alignment = .fill
-        s.translatesAutoresizingMaskIntoConstraints = false
-        return s
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        let str = NSMutableAttributedString()
-        str.append(NSAttributedString(string: "New ", attributes: [
-            .font: UIFont.systemFont(ofSize: 26, weight: .heavy),
-            .foregroundColor: AppTheme.accent
-        ]))
-        str.append(NSAttributedString(string: "Focus", attributes: [
-            .font: UIFont.systemFont(ofSize: 26, weight: .heavy),
-            .foregroundColor: AppTheme.primaryText
-        ]))
-        label.attributedText = str
-        return label
-    }()
-
-    private let messageLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Name it · set priority · schedule it"
-        label.font = .systemFont(ofSize: 13, weight: .regular)
-        label.textColor = AppTheme.tertiaryText
-        label.numberOfLines = 1
-        return label
-    }()
-
     private let formView: TaskFormView
+
+    // Gradient pill button
     private let addButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Add", for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        button.backgroundColor = AppTheme.accent
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 12
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+        let b = UIButton(type: .custom)
+        b.setTitle("  Add Focus", for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 17, weight: .bold)
+        b.layer.cornerRadius = 26
+        b.layer.cornerCurve = .continuous
+        b.clipsToBounds = true
+        b.translatesAutoresizingMaskIntoConstraints = false
+        let cfg = UIImage.SymbolConfiguration(pointSize: 17, weight: .bold)
+        b.setImage(UIImage(systemName: "bolt.fill", withConfiguration: cfg), for: .normal)
+        return b
     }()
 
-    private let cancelButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Cancel", for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .medium)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    private let gradientLayer: CAGradientLayer = {
+        let g = CAGradientLayer()
+        g.colors = [
+            UIColor(red: 0.678, green: 0.776, blue: 1.0, alpha: 1).cgColor,
+            UIColor(red: 0.294, green: 0.557, blue: 1.0, alpha: 1).cgColor
+        ]
+        g.startPoint = CGPoint(x: 0, y: 0.5)
+        g.endPoint = CGPoint(x: 1, y: 0.5)
+        return g
     }()
+
+    // MARK: - Callbacks & State
 
     private let referenceDay: Date
-
     var onSave: ((TaskFormPayload) -> Void)?
     var onCancelTapped: (() -> Void)?
+
+    // MARK: - Init
 
     init(referenceDay: Date) {
         self.referenceDay = referenceDay
@@ -94,78 +94,108 @@ class AddTaskSheetView: UIView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         setupUI()
+        applyColors()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: - Setup
 
     private func setupUI() {
         addSubview(dimmedBackground)
         addSubview(cardView)
+
+        // Header
+        headerRow.addSubview(titleLabel)
+        headerRow.addSubview(closeButton)
+        cardView.addSubview(headerRow)
+
+        // Scroll
+        scrollView.addSubview(formView)
         cardView.addSubview(scrollView)
-        scrollView.addSubview(contentStack)
 
-        contentStack.addArrangedSubview(titleLabel)
-        contentStack.addArrangedSubview(messageLabel)
-        contentStack.addArrangedSubview(formView)
-
+        // Add button (gradient layer inserted in layoutSubviews)
+        addButton.layer.insertSublayer(gradientLayer, at: 0)
         cardView.addSubview(addButton)
-        cardView.addSubview(cancelButton)
 
-        dimmedBackground.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dimmedTapped)))
-        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        dimmedBackground.addGestureRecognizer(
+            UITapGestureRecognizer(target: self, action: #selector(cancelTapped))
+        )
+        closeButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         addButton.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
+            // Dimmed overlay
             dimmedBackground.topAnchor.constraint(equalTo: topAnchor),
             dimmedBackground.leadingAnchor.constraint(equalTo: leadingAnchor),
             dimmedBackground.trailingAnchor.constraint(equalTo: trailingAnchor),
             dimmedBackground.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            cardView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
-            cardView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            // Card
+            cardView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+            cardView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
             cardView.centerYAnchor.constraint(equalTo: centerYAnchor),
             cardView.heightAnchor.constraint(lessThanOrEqualTo: safeAreaLayoutGuide.heightAnchor, constant: -48),
 
-            // Reserve real space for the form; otherwise the scroll view collapses vertically.
-            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
+            // Header row
+            headerRow.topAnchor.constraint(equalTo: cardView.topAnchor),
+            headerRow.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            headerRow.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            headerRow.heightAnchor.constraint(equalToConstant: 64),
 
-            scrollView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 20),
+            titleLabel.leadingAnchor.constraint(equalTo: headerRow.leadingAnchor, constant: 24),
+            titleLabel.centerYAnchor.constraint(equalTo: headerRow.centerYAnchor),
+
+            closeButton.trailingAnchor.constraint(equalTo: headerRow.trailingAnchor, constant: -16),
+            closeButton.centerYAnchor.constraint(equalTo: headerRow.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 36),
+            closeButton.heightAnchor.constraint(equalToConstant: 36),
+
+            // Scroll view
+            scrollView.topAnchor.constraint(equalTo: headerRow.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -16),
+            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
 
-            contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: 20),
-            contentStack.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -20),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            // Form inside scroll
+            formView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            formView.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: 24),
+            formView.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -24),
+            formView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
 
+            // Add button
             addButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
             addButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
-            addButton.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -12),
-            addButton.heightAnchor.constraint(equalToConstant: 48),
-
-            cancelButton.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
-            cancelButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16)
+            addButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -20),
+            addButton.heightAnchor.constraint(equalToConstant: 52),
         ])
     }
 
+    private func applyColors() {
+        cardView.backgroundColor = AppTheme.elevatedBackground
+        titleLabel.textColor = AppTheme.primaryText
+        closeButton.tintColor = AppTheme.secondaryText
+        let buttonTextColor = UIColor(red: 0, green: 0.18, blue: 0.41, alpha: 1)
+        addButton.setTitleColor(buttonTextColor, for: .normal)
+        addButton.tintColor = buttonTextColor
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        applyColors()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = addButton.bounds
+        gradientLayer.cornerRadius = addButton.layer.cornerRadius
+    }
+
+    // MARK: - Public API
+
     func applyPrefill(_ task: FocusTask?) {
         formView.apply(task: task)
-    }
-
-    @objc private func addTapped() {
-        guard let payload = formView.collectPayload() else { return }
-        onSave?(payload)
-    }
-
-    @objc private func cancelTapped() {
-        onCancelTapped?()
-    }
-
-    @objc private func dimmedTapped() {
-        onCancelTapped?()
     }
 
     func show(in view: UIView) {
@@ -174,18 +204,29 @@ class AddTaskSheetView: UIView {
             topAnchor.constraint(equalTo: view.topAnchor),
             leadingAnchor.constraint(equalTo: view.leadingAnchor),
             trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         alpha = 0
-        UIView.animate(withDuration: 0.25) { self.alpha = 1 }
+        UIView.animate(withDuration: 0.22) { self.alpha = 1 }
         layoutIfNeeded()
         formView.focusTitleField()
     }
 
     func dismiss() {
         formView.endEditing(true)
-        UIView.animate(withDuration: 0.25, animations: { self.alpha = 0 }) { _ in
+        UIView.animate(withDuration: 0.22, animations: { self.alpha = 0 }) { _ in
             self.removeFromSuperview()
         }
+    }
+
+    // MARK: - Actions
+
+    @objc private func addTapped() {
+        guard let payload = formView.collectPayload() else { return }
+        onSave?(payload)
+    }
+
+    @objc private func cancelTapped() {
+        onCancelTapped?()
     }
 }
