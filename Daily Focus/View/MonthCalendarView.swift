@@ -406,14 +406,20 @@ private final class CalendarDayCell: UICollectionViewCell {
 
         if isSelected {
             selectionBg.backgroundColor = AppTheme.accent
+            selectionBg.layer.borderWidth = 0
+            selectionBg.layer.borderColor = UIColor.clear.cgColor
             numberLabel.textColor = .white
             numberLabel.font = .systemFont(ofSize: 14, weight: .bold)
         } else if isToday {
             selectionBg.backgroundColor = .clear
+            selectionBg.layer.borderWidth = 1.5
+            selectionBg.layer.borderColor = AppTheme.accent.resolvedColor(with: traitCollection).cgColor
             numberLabel.textColor = AppTheme.accent
             numberLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         } else {
             selectionBg.backgroundColor = .clear
+            selectionBg.layer.borderWidth = 0
+            selectionBg.layer.borderColor = UIColor.clear.cgColor
             numberLabel.textColor = isInDisplayedMonth ? AppTheme.primaryText : AppTheme.calendarDayDimmed
             numberLabel.font = .systemFont(ofSize: 14, weight: .medium)
         }
