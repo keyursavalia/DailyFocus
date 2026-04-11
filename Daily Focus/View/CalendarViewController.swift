@@ -31,6 +31,7 @@ final class CalendarViewController: UIViewController {
     }()
 
     private let sideToolsDrawer = SideToolsDrawerView()
+    private let settingsTransitionDelegate = LeftPanelTransitionDelegate()
 
     private var tasksByDay: [String: [FocusTask]] = [:]
     private var selectedDayKey: String = DayKey.string(for: Date())
@@ -265,11 +266,8 @@ final class CalendarViewController: UIViewController {
 
     private func openSettings() {
         let vc = AppSettingsViewController()
-        vc.modalPresentationStyle = .pageSheet
-        if let sheet = vc.sheetPresentationController {
-            sheet.detents = [.medium()]
-            sheet.prefersGrabberVisible = true
-        }
+        vc.modalPresentationStyle = .custom
+        vc.transitioningDelegate = settingsTransitionDelegate
         present(vc, animated: true)
     }
 
