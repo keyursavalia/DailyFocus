@@ -3,6 +3,12 @@ import UIKit
 /// Month grid with task stripes under each date, plus a day agenda panel below.
 final class CalendarViewController: UIViewController {
 
+    // Custom nav bar
+    private let customNavBar = UIView()
+    private let hamburgerButton = UIButton(type: .system)
+    private let searchButton = UIButton(type: .system)
+    private let todayButton = UIButton(type: .system)
+
     private let monthCalendarView = MonthCalendarView()
 
     // Panel header
@@ -46,6 +52,7 @@ final class CalendarViewController: UIViewController {
         view.backgroundColor = AppTheme.background
         navigationController?.setNavigationBarHidden(true, animated: false)
 
+        configureCustomNavBar()
         configureMonthCalendar()
         configurePanelHeader()
         configureTable()
@@ -73,11 +80,67 @@ final class CalendarViewController: UIViewController {
     @objc private func onSignificantTimeChange() {
         selectedDayKey = DayKey.string(for: Date())
         displayedMonth = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? displayedMonth
+        let day = Calendar.current.component(.day, from: Date())
+        todayButton.setTitle("\(day)", for: .normal)
         syncMonthViewState()
         reloadFromDisk()
     }
 
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            todayButton.layer.borderColor = AppTheme.primaryText.resolvedColor(with: traitCollection).cgColor
+        }
+    }
+
     // MARK: - Configuration
+
+    private func configureCustomNavBar() {
+        customNavBar.translatesAutoresizingMaskIntoConstraints = false
+
+        let symCfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+
+        hamburgerButton.setImage(UIImage(systemName: "line.3.horizontal", withConfiguration: symCfg), for: .normal)
+        hamburgerButton.tintColor = AppTheme.primaryText
+        hamburgerButton.addAction(UIAction { [weak self] _ in self?.openSettings() }, for: .touchUpInside)
+        hamburgerButton.translatesAutoresizingMaskIntoConstraints = false
+
+        searchButton.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: symCfg), for: .normal)
+        searchButton.tintColor = AppTheme.primaryText
+        searchButton.addAction(UIAction { [weak self] _ in self?.openSearch() }, for: .touchUpInside)
+        searchButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let day = Calendar.current.component(.day, from: Date())
+        todayButton.setTitle("\(day)", for: .normal)
+        todayButton.setTitleColor(AppTheme.primaryText, for: .normal)
+        todayButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
+        todayButton.layer.borderWidth = 1.5
+        todayButton.layer.cornerRadius = 6
+        todayButton.layer.borderColor = AppTheme.primaryText.resolvedColor(with: traitCollection).cgColor
+        todayButton.addAction(UIAction { [weak self] _ in self?.scrollToToday() }, for: .touchUpInside)
+        todayButton.translatesAutoresizingMaskIntoConstraints = false
+
+        customNavBar.addSubview(hamburgerButton)
+        customNavBar.addSubview(searchButton)
+        customNavBar.addSubview(todayButton)
+
+        NSLayoutConstraint.activate([
+            hamburgerButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            hamburgerButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
+            hamburgerButton.widthAnchor.constraint(equalToConstant: 36),
+            hamburgerButton.heightAnchor.constraint(equalToConstant: 36),
+
+            todayButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            todayButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            todayButton.widthAnchor.constraint(equalToConstant: 32),
+            todayButton.heightAnchor.constraint(equalToConstant: 28),
+
+            searchButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            searchButton.trailingAnchor.constraint(equalTo: todayButton.leadingAnchor, constant: -10),
+            searchButton.widthAnchor.constraint(equalToConstant: 36),
+            searchButton.heightAnchor.constraint(equalToConstant: 36),
+        ])
+    }
 
     private func configureMonthCalendar() {
         monthCalendarView.displayedMonth = displayedMonth
@@ -163,13 +226,19 @@ final class CalendarViewController: UIViewController {
     }
 
     private func layoutViews() {
+        view.addSubview(customNavBar)
         view.addSubview(monthCalendarView)
         view.addSubview(panelHeaderRow)
         view.addSubview(tableView)
         view.addSubview(fabButton)
 
         NSLayoutConstraint.activate([
-            monthCalendarView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
+            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            customNavBar.heightAnchor.constraint(equalToConstant: 44),
+
+            monthCalendarView.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 6),
             monthCalendarView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             monthCalendarView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
@@ -190,6 +259,34 @@ final class CalendarViewController: UIViewController {
         ])
 
         view.bringSubviewToFront(sideToolsDrawer)
+    }
+
+    // MARK: - Nav bar actions
+
+    private func openSettings() {
+        let vc = AppSettingsViewController()
+        vc.modalPresentationStyle = .pageSheet
+        if let sheet = vc.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(vc, animated: true)
+    }
+
+    private func openSearch() {
+        let vc = TaskSearchViewController()
+        vc.modalPresentationStyle = .fullScreen
+        vc.onResultSelected = { [weak self] task in
+            self?.applySelectedDayKey(task.dayKey)
+        }
+        present(vc, animated: true)
+    }
+
+    private func scrollToToday() {
+        let today = Date()
+        let todayKey = DayKey.string(for: today)
+        displayedMonth = cal.date(from: cal.dateComponents([.year, .month], from: today)) ?? displayedMonth
+        applySelectedDayKey(todayKey)
     }
 
     // MARK: - State
