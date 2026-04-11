@@ -2,68 +2,83 @@ import UIKit
 
 final class AppSettingsViewController: UIViewController {
 
+    // Compact floating card: declare a fixed preferred size so the
+    // presentation controller can size the frame exactly.
+    override var preferredContentSize: CGSize {
+        get { CGSize(width: 256, height: 118) }
+        set { super.preferredContentSize = newValue }
+    }
+
     private let titleLabel = UILabel()
-    private let appearanceRowView = UIView()
+    private let divider = UIView()
     private let appearanceLabel = UILabel()
     private let appearanceSwitch = UISwitch()
+    private let moonIcon = UIImageView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = AppTheme.background
+        // Card background — elevated surface, not plain background
+        view.backgroundColor = AppTheme.elevatedBackground
+        view.clipsToBounds = true   // keeps content clipped to the rounded corners
         setupViews()
     }
 
     private func setupViews() {
+        // Title
         titleLabel.text = "Settings"
-        titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
-        titleLabel.textColor = AppTheme.primaryText
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = AppTheme.secondaryText
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        appearanceRowView.backgroundColor = AppTheme.cardBackground
-        appearanceRowView.layer.cornerRadius = 14
-        appearanceRowView.layer.cornerCurve = .continuous
-        appearanceRowView.translatesAutoresizingMaskIntoConstraints = false
+        // Divider
+        divider.backgroundColor = AppTheme.border
+        divider.translatesAutoresizingMaskIntoConstraints = false
 
-        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
-        let iconView = UIImageView(image: UIImage(systemName: "moon.fill", withConfiguration: iconCfg))
-        iconView.tintColor = AppTheme.secondaryText
-        iconView.translatesAutoresizingMaskIntoConstraints = false
+        // Moon icon
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        moonIcon.image = UIImage(systemName: "moon.fill", withConfiguration: iconCfg)
+        moonIcon.tintColor = AppTheme.accent
+        moonIcon.contentMode = .scaleAspectFit
+        moonIcon.translatesAutoresizingMaskIntoConstraints = false
 
+        // Label
         appearanceLabel.text = "Dark Mode"
-        appearanceLabel.font = .systemFont(ofSize: 16, weight: .medium)
+        appearanceLabel.font = .systemFont(ofSize: 15, weight: .regular)
         appearanceLabel.textColor = AppTheme.primaryText
         appearanceLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // Switch
         appearanceSwitch.isOn = AppearanceManager.shared.preference == .dark
         appearanceSwitch.onTintColor = AppTheme.accent
+        appearanceSwitch.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
         appearanceSwitch.addTarget(self, action: #selector(appearanceSwitchChanged), for: .valueChanged)
         appearanceSwitch.translatesAutoresizingMaskIntoConstraints = false
 
-        appearanceRowView.addSubview(iconView)
-        appearanceRowView.addSubview(appearanceLabel)
-        appearanceRowView.addSubview(appearanceSwitch)
-
         view.addSubview(titleLabel)
-        view.addSubview(appearanceRowView)
+        view.addSubview(divider)
+        view.addSubview(moonIcon)
+        view.addSubview(appearanceLabel)
+        view.addSubview(appearanceSwitch)
 
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
 
-            appearanceRowView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
-            appearanceRowView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            appearanceRowView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            appearanceRowView.heightAnchor.constraint(equalToConstant: 52),
+            divider.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+            divider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            divider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            divider.heightAnchor.constraint(equalToConstant: 0.5),
 
-            iconView.centerYAnchor.constraint(equalTo: appearanceRowView.centerYAnchor),
-            iconView.leadingAnchor.constraint(equalTo: appearanceRowView.leadingAnchor, constant: 16),
-            iconView.widthAnchor.constraint(equalToConstant: 20),
+            moonIcon.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 18),
+            moonIcon.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            moonIcon.widthAnchor.constraint(equalToConstant: 18),
+            moonIcon.heightAnchor.constraint(equalToConstant: 18),
 
-            appearanceLabel.centerYAnchor.constraint(equalTo: appearanceRowView.centerYAnchor),
-            appearanceLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            appearanceLabel.centerYAnchor.constraint(equalTo: moonIcon.centerYAnchor),
+            appearanceLabel.leadingAnchor.constraint(equalTo: moonIcon.trailingAnchor, constant: 10),
 
-            appearanceSwitch.centerYAnchor.constraint(equalTo: appearanceRowView.centerYAnchor),
-            appearanceSwitch.trailingAnchor.constraint(equalTo: appearanceRowView.trailingAnchor, constant: -16),
+            appearanceSwitch.centerYAnchor.constraint(equalTo: moonIcon.centerYAnchor),
+            appearanceSwitch.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
         ])
     }
 
